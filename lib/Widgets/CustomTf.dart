@@ -6,6 +6,7 @@ class CustomTextField extends StatefulWidget {
   final TextEditingController? controller;
   final Color? labelColor;
   final Color? borderColor;
+  final Color? backgroundColor; // Adicionando a cor de fundo
 
   const CustomTextField({
     super.key,
@@ -14,6 +15,7 @@ class CustomTextField extends StatefulWidget {
     this.controller,
     this.labelColor,
     this.borderColor,
+    this.backgroundColor,
   });
 
   @override
@@ -21,50 +23,68 @@ class CustomTextField extends StatefulWidget {
 }
 
 class _CustomTextFieldState extends State<CustomTextField> {
-  bool _obscureText = true; // Estado para controlar a visibilidade da senha
+  bool _obscureText = true;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: widget.controller,
-      obscureText: widget.isPassword ? _obscureText : false,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        labelStyle: TextStyle(
-          color: widget.labelColor ?? Colors.black, // Define a cor do label
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(
-            color: widget.borderColor ?? Colors.grey, // Define a cor da borda
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.2),
+        blurRadius: 4,
+        offset: Offset(0, 4),
+      ),
+    ],
+  ),
+      child: TextField(
+        controller: widget.controller,
+        obscureText: widget.isPassword ? _obscureText : false,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          labelStyle: TextStyle(
+            color: widget.labelColor ?? Colors.black,
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(
-            color: widget.borderColor ?? Colors.grey, // Borda quando não focado
+          filled: true,
+          fillColor: widget.backgroundColor ?? Colors.white,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: widget.borderColor ?? Colors.grey,
+            ),
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(
-            color: widget.borderColor ?? Colors.teal, // Borda quando focado
-            width: 2.0,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: widget.borderColor ?? Colors.grey,
+            ),
           ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: widget.borderColor ?? Colors.teal,
+              width: 2.0,
+            ),
+          ),
+          suffixIcon: widget.isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureText = !_obscureText;
+                    });
+                  },
+                )
+              : null,
         ),
-        suffixIcon: widget.isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureText = !_obscureText; // Alterna a visibilidade
-                  });
-                },
-              )
-            : null,
       ),
     );
   }

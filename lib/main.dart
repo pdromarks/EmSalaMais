@@ -60,6 +60,7 @@ class LoginScreen extends StatelessWidget {
                     color: Colors.black,
                     decoration: TextDecoration.underline,
                     fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -70,34 +71,34 @@ class LoginScreen extends StatelessWidget {
                 backgroundColor: AppColors.ciano,
               ),
               const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const FaIcon(
-                      FontAwesomeIcons.facebook,
-                      color: Colors.blue,
-                    ),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 10,),
-                  IconButton(
-                    icon: const FaIcon(
-                      FontAwesomeIcons.google,
-                      color: Colors.red,
-                    ),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 10,),
-                  IconButton(
-                    icon: const FaIcon(
-                      FontAwesomeIcons.linkedin,
-                      color: Colors.blue,
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: [
+              //     IconButton(
+              //       icon: const FaIcon(
+              //         FontAwesomeIcons.facebook,
+              //         color: Colors.blue,
+              //       ),
+              //       onPressed: () {},
+              //     ),
+              //     const SizedBox(width: 10,),
+              //     IconButton(
+              //       icon: const FaIcon(
+              //         FontAwesomeIcons.google,
+              //         color: Colors.red,
+              //       ),
+              //       onPressed: () {},
+              //     ),
+              //     const SizedBox(width: 10,),
+              //     IconButton(
+              //       icon: const FaIcon(
+              //         FontAwesomeIcons.linkedin,
+              //         color: Colors.blue,
+              //       ),
+              //       onPressed: () {},
+              //     ),
+              //   ],
+              // ),
             ],
           ),
         ),
