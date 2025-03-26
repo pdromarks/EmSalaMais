@@ -19,7 +19,7 @@ class AccessKeyScreen extends StatelessWidget {
               const SizedBox(height: 80,),
               Container(
                 height: 140,
-                child: Image.asset('assets/emsalamais.png')),
+                child: Image.asset('assets/images/emsalamais.png')),
               const SizedBox(height: 120),
               const CustomTextField(
                 label: 'Chave de Acesso',

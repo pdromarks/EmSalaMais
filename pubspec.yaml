@@ -18,6 +18,20 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
-  assets:
-    - assets/
+
   uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/fonts/
+    
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_28pt-Regular.ttf
+        - asset: assets/fonts/Inter_28pt-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter_28pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_28pt-Black.ttf
+          weight: 800
