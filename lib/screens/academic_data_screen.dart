@@ -40,12 +40,27 @@ class AcademicDataScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               CustomDropdown(
-                items: [
-                  'Engenharia de Software',
-                  'Direito',
-                  'Análise e Desenvolvimento de Sistemas',
+                label: 'Seu Curso',
+                items: ['Teste'],
+                onChanged: (value) => print('$value'),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CustomDropdown(
+                    width: MediaQuery.of(context).size.width / 2.7 ,
+                    label: 'Semestre',
+                    items: ['Teste'],
+                    onChanged: (value) => print('$value'),
+                  ),
+                  CustomDropdown(
+                    width: MediaQuery.of(context).size.width / 2.7 ,
+                    label: 'Turno',
+                    items: ['Teste'],
+                    onChanged: (value) => print('$value'),
+                  ),
                 ],
-                onChanged: (value) => print('Selecionado: $value'),
               ),
               const SizedBox(height: 100),
               CustomButton(
