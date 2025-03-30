@@ -56,12 +56,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
               color: widget.borderColor ?? Colors.grey,
+              width: 2.0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
               color: widget.borderColor ?? Colors.grey,
+              width: 2.0,
             ),
           ),
           focusedBorder: OutlineInputBorder(
