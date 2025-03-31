@@ -27,6 +27,9 @@ class CustomDropdown extends StatefulWidget {
   final ValueChanged<DropdownValueModel?> onChanged;
   final String label;
   final double? width;
+  final double? height;
+  final double? fontSize;
+  final double? iconSize;
   final VoidCallback? onOpen;
   final String? openDropdownId;
   final String dropdownId;
@@ -39,6 +42,9 @@ class CustomDropdown extends StatefulWidget {
     this.selectedValue,
     required this.label,
     this.width,
+    this.height,
+    this.fontSize,
+    this.iconSize,
     this.onOpen,
     this.openDropdownId,
     required this.dropdownId,
@@ -123,6 +129,15 @@ class _CustomDropdownState extends State<CustomDropdown> {
   }
 
   OverlayEntry _createOverlayEntry(Offset position, Size size) {
+    // Obtém o tamanho da tela para cálculos responsivos
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    
+    // Define valores padrão baseados no tamanho da tela
+    final defaultFontSize = screenWidth * 0.04;
+    final defaultIconSize = screenWidth * 0.05;
+    
     return OverlayEntry(
       builder: (context) => Positioned(
         width: size.width,
@@ -134,7 +149,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
             borderRadius: BorderRadius.circular(20),
             child: Container(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.3,
+                maxHeight: screenHeight * 0.3,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -145,12 +160,16 @@ class _CustomDropdownState extends State<CustomDropdown> {
                 children: [
                   if (widget.enableSearch)
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.all(screenWidth * 0.02),
                       child: TextField(
                         controller: _searchController,
+                        style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize * 0.8),
                         decoration: InputDecoration(
                           hintText: 'Pesquisar...',
-                          prefixIcon: const Icon(Icons.search),
+                          prefixIcon: Icon(
+                            Icons.search, 
+                            size: widget.iconSize ?? defaultIconSize,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(20),
                             borderSide: BorderSide(color: AppColors.verdeUNICV),
@@ -163,7 +182,10 @@ class _CustomDropdownState extends State<CustomDropdown> {
                             borderRadius: BorderRadius.circular(20),
                             borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.02,
+                            vertical: screenHeight * 0.005,
+                          ),
                         ),
                         onChanged: _filterItems,
                       ),
@@ -182,9 +204,9 @@ class _CustomDropdownState extends State<CustomDropdown> {
                             _removeOverlay();
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.04,
+                              vertical: screenHeight * 0.015,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected ? AppColors.verdeUNICV.withOpacity(0.1) : null,
@@ -193,19 +215,19 @@ class _CustomDropdownState extends State<CustomDropdown> {
                             child: Row(
                               children: [
                                 if (isSelected)
-                                  const Padding(
-                                    padding: EdgeInsets.only(right: 8),
+                                  Padding(
+                                    padding: EdgeInsets.only(right: screenWidth * 0.02),
                                     child: Icon(
                                       Icons.check,
                                       color: AppColors.verdeUNICV,
-                                      size: 20,
+                                      size: widget.iconSize ?? defaultIconSize,
                                     ),
                                   ),
                                 Expanded(
                                   child: Text(
                                     item.label,
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: widget.fontSize ?? defaultFontSize,
                                       color: isSelected
                                           ? AppColors.verdeUNICV
                                           : Colors.black87,
@@ -233,13 +255,23 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   @override
   Widget build(BuildContext context) {
+    // Obtém o tamanho da tela para cálculos responsivos
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    
+    // Define valores padrão baseados no tamanho da tela
+    final defaultHeight = screenHeight * 0.05;
+    final defaultFontSize = screenWidth * 0.04;
+    final defaultIconSize = screenWidth * 0.05;
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         return CompositedTransformTarget(
           link: _layerLink,
           child: Container(
             key: _dropdownKey,
-            height: 40,
+            height: widget.height ?? defaultHeight,
             width: widget.width ?? constraints.maxWidth,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -252,14 +284,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   labelText: widget.label,
                   labelStyle: TextStyle(
                     color: AppColors.verdeUNICV,
-                    fontSize: 16,
+                    fontSize: widget.fontSize ?? defaultFontSize,
                     fontWeight: FontWeight.w700,
                   ),
                   floatingLabelBehavior: FloatingLabelBehavior.always,
-                  contentPadding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 8,
+                  contentPadding: EdgeInsets.only(
+                    left: screenWidth * 0.04,
+                    right: screenWidth * 0.04,
+                    bottom: screenHeight * 0.01,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -276,12 +308,15 @@ class _CustomDropdownState extends State<CustomDropdown> {
                     Expanded(
                       child: Text(
                         widget.selectedValue?.label ?? '',
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: widget.fontSize ?? defaultFontSize,
+                        ),
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.arrow_drop_down,
                       color: AppColors.verdeUNICV,
+                      size: widget.iconSize ?? defaultIconSize,
                     ),
                   ],
                 ),
