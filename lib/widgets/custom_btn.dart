@@ -7,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final double borderRadius;
   final IconData? icon;
   final double? width;
+  final double? maxWidth;
   final double? height;
   final double? fontSize;
   final double? iconSize;
@@ -19,6 +20,7 @@ class CustomButton extends StatelessWidget {
     this.borderRadius = 20.0,
     this.icon,
     this.width,
+    this.maxWidth,
     this.height,
     this.fontSize,
     this.iconSize,
@@ -40,6 +42,13 @@ class CustomButton extends StatelessWidget {
     // Calcula o padding interno com base no tamanho da tela
     final horizontalPadding = screenWidth * 0.015;
     
+    // Calcula a largura efetiva considerando o maxWidth
+    final effectiveWidth = width != null 
+        ? (maxWidth != null ? 
+            (width! > maxWidth! ? maxWidth : width) 
+            : width)
+        : defaultWidth;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -53,7 +62,10 @@ class CustomButton extends StatelessWidget {
         ],
       ),
       height: height ?? defaultHeight,
-      width: width ?? defaultWidth,
+      width: effectiveWidth,
+      constraints: maxWidth != null 
+          ? BoxConstraints(maxWidth: maxWidth!) 
+          : null,
       child: SizedBox(
         width: double.infinity,
         height: height ?? defaultHeight,

@@ -8,6 +8,7 @@ class CustomTextField extends StatefulWidget {
   final Color? borderColor;
   final Color? backgroundColor;
   final double? width;
+  final double? maxWidth;
   final double? height;
   final double? fontSize;
   final IconData? prefixIcon;
@@ -23,6 +24,7 @@ class CustomTextField extends StatefulWidget {
     this.borderColor,
     this.backgroundColor,
     this.width,
+    this.maxWidth,
     this.height,
     this.fontSize,
     this.prefixIcon,
@@ -50,9 +52,19 @@ class _CustomTextFieldState extends State<CustomTextField> {
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = isDesktop ? 22.0 : defaultFontSize * 1.2;
     
+    // Calcula a largura efetiva considerando o maxWidth
+    final effectiveWidth = widget.width != null 
+        ? (widget.maxWidth != null ? 
+            (widget.width! > widget.maxWidth! ? widget.maxWidth : widget.width) 
+            : widget.width)
+        : null;
+    
     return Container(
       height: widget.height ?? defaultHeight,
-      width: widget.width,
+      width: effectiveWidth,
+      constraints: widget.maxWidth != null 
+          ? BoxConstraints(maxWidth: widget.maxWidth!) 
+          : null,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
