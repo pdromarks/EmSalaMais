@@ -27,72 +27,56 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: const Color(0xfff1f1f1),
       body: Center(
         child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
+        builder: (BuildContext context, BoxConstraints constraints) {
             return SingleChildScrollView(
-              child: Container(
-                width: cardWidth,
-                margin: const EdgeInsets.symmetric(vertical: 20),
-                padding: EdgeInsets.all(isDesktop ? 40 : isTablet ? 30 : 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
+              child: !isTablet && !isDesktop
+                  // Layout para Mobile (sem card)
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
                       height: logoHeight,
                       child: Image.asset('assets/images/emsalamais.png'),
                     ),
-                    SizedBox(height: height * 0.04),
-                    // Campo de email com ícone de envelope
-                    CustomTextField(
-                      label: 'Email',
+                          SizedBox(height: height * 0.04),
+                          CustomTextField(
+                            label: 'Email',
                       borderColor: AppColors.ciano,
                       labelColor: AppColors.ciano,
-                      prefixIcon: Icons.email,
-                      iconSize: iconSize,
-                      iconColor: AppColors.ciano,
-                      width: isDesktop ? width * 0.28 : null,
-                      height: height * 0.065,
-                      maxWidth: 400,
-                      fontSize: regularFontSize,
+                            prefixIcon: Icons.email,
+                            iconSize: iconSize,
+                            iconColor: AppColors.ciano,
+                            height: height * 0.065,
+                            fontSize: regularFontSize,
                     ),
                     SizedBox(height: verticalSpacing),
-                    CustomTextField(
+                          CustomTextField(
                       label: 'Senha',
                       isPassword: true,
                       borderColor: AppColors.ciano,
                       labelColor: AppColors.ciano,
-                      prefixIcon: Icons.lock,
-                      iconSize: iconSize,
-                      iconColor: AppColors.ciano,
-                      width: isDesktop ? width * 0.28 : null,
-                      height: height * 0.065, 
-                      maxWidth: 400,
-                      fontSize: regularFontSize,
-                    ),
-                    SizedBox(height: 25),
-                    Align(
-                      alignment: Alignment.center,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          'Esqueci a minha senha',
-                          style: TextStyle(
-                            color: Colors.black,
-                            decoration: TextDecoration.underline,
-                            fontSize: smallFontSize,
-                            fontWeight: FontWeight.w600,
+                            prefixIcon: Icons.lock,
+                            iconSize: iconSize,
+                            iconColor: AppColors.ciano,
+                            height: height * 0.065,
+                            fontSize: regularFontSize,
                           ),
+                          SizedBox(height: 25),
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton(
+                      onPressed: () {},
+                      child: Text(
+                        'Esqueci a minha senha',
+                        style: TextStyle(
+                          color: Colors.black,
+                          decoration: TextDecoration.underline,
+                                  fontSize: smallFontSize,
+                          fontWeight: FontWeight.w600,
+                                ),
                         ),
                       ),
                     ),
@@ -101,16 +85,96 @@ class LoginScreen extends StatelessWidget {
                       text: 'Entrar',
                       onPressed: () {},
                       backgroundColor: AppColors.ciano,
-                      width: isDesktop ? width * 0.25 : isTablet ? width * 0.35 : width * 0.45,
-                      maxWidth: 180,
-                      height: height * 0.065,
-                      fontSize: buttonFontSize,
-                    ),
-                  ],
-                ),
+                      width: width * 0.45,
+                            maxWidth: 180,
+                            height: height * 0.065,
+                            fontSize: buttonFontSize,
+                          ),
+                        ],
+                      ),
+                    )
+                  // Layout para Tablet e Desktop (com card)
+                  : Container(
+                      width: cardWidth,
+                      margin: const EdgeInsets.symmetric(vertical: 20),
+                      padding: EdgeInsets.all(isDesktop ? 40 : 30),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            height: logoHeight,
+                            child: Image.asset('assets/images/emsalamais.png'),
+                          ),
+                          SizedBox(height: height * 0.04),
+                          CustomTextField(
+                            label: 'Email',
+                            borderColor: AppColors.ciano,
+                            labelColor: AppColors.ciano,
+                            prefixIcon: Icons.email,
+                            iconSize: iconSize,
+                            iconColor: AppColors.ciano,
+                            width: isDesktop ? width * 0.28 : null,
+                            height: height * 0.065,
+                            maxWidth: 400,
+                            fontSize: regularFontSize,
+                          ),
+                          SizedBox(height: verticalSpacing),
+                          CustomTextField(
+                            label: 'Senha',
+                            isPassword: true,
+                            borderColor: AppColors.ciano,
+                            labelColor: AppColors.ciano,
+                            prefixIcon: Icons.lock,
+                            iconSize: iconSize,
+                            iconColor: AppColors.ciano,
+                            width: isDesktop ? width * 0.28 : null,
+                            height: height * 0.065,
+                            maxWidth: 400,
+                            fontSize: regularFontSize,
+                          ),
+                          SizedBox(height: 25),
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton(
+                              onPressed: () {},
+                              child: Text(
+                                'Esqueci a minha senha',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: smallFontSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: height * 0.02),
+                          CustomButton(
+                            text: 'Entrar',
+                            onPressed: () {},
+                            backgroundColor: AppColors.ciano,
+                            width: isDesktop ? width * 0.25 : width * 0.35,
+                            maxWidth: 180,
+                            height: height * 0.065,
+                            fontSize: buttonFontSize,
+                          ),
+                        ],
               ),
-            );
-          },
+            ),
+          );
+        },
         ),
       ),
     );
