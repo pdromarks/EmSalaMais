@@ -1,9 +1,14 @@
+import 'package:em_sala_mais/backend/user/user.service.dart';
 import 'package:flutter/material.dart';
-import 'screens/access_key_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
-import 'screens/academic_data_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://gwbbvnaszswrtgvrwoum.supabase.co', // Replace with your Supabase URL
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YmJ2bmFzenN3cnRndnJ3b3VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2Mzk5ODIsImV4cCI6MjA1OTIxNTk4Mn0.Rmoi6eeM7hHLfCG2jCtPHf6HvpkLuE6bLvjCNeeOjlc', // Replace with your Supabase anon key key
+  );
   runApp(const MyApp());
 }
 

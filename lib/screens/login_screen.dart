@@ -5,7 +5,6 @@ import '../theme/theme.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     // Obtém o tamanho da tela para responsividade
