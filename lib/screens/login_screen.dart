@@ -1,7 +1,8 @@
+import 'package:em_sala_mais/backend/user/user.service.dart';
 import 'package:flutter/material.dart';
-import '../widgets/custom_tf.dart';
-import '../widgets/custom_btn.dart';
-import '../theme/theme.dart';
+import '../../../widgets/custom_tf.dart';
+import '../../../widgets/custom_btn.dart';
+import '../../../theme/theme.dart';
 
 
 class LoginScreen extends StatelessWidget {
@@ -23,6 +24,9 @@ class LoginScreen extends StatelessWidget {
     final double verticalSpacing = height * 0.015;
     final double cardWidth = isDesktop ? width * 0.4 : isTablet ? width * 0.7 : width * 0.9;
     
+    final TextEditingController _emailController = TextEditingController();
+    final TextEditingController _passwordController = TextEditingController();
+
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
       body: Center(
@@ -83,7 +87,17 @@ class LoginScreen extends StatelessWidget {
                     SizedBox(height: height * 0.02),
                     CustomButton(
                       text: 'Entrar',
-                      onPressed: () {},
+                      onPressed: () async {
+                          String email = _emailController.text;
+                          String password = _passwordController.text;
+
+                          try{
+
+                          var response = await UserService().signUpUser(password, email);
+                          }catch(e){
+                            print(e);
+                          }
+                      },
                       backgroundColor: AppColors.ciano,
                       width: width * 0.45,
                             maxWidth: 180,
@@ -129,6 +143,7 @@ class LoginScreen extends StatelessWidget {
                             height: height * 0.065,
                             maxWidth: 400,
                             fontSize: regularFontSize,
+                            controller: _emailController,
                           ),
                           SizedBox(height: verticalSpacing),
                           CustomTextField(
@@ -143,6 +158,7 @@ class LoginScreen extends StatelessWidget {
                             height: height * 0.065,
                             maxWidth: 400,
                             fontSize: regularFontSize,
+                            controller: _passwordController,
                           ),
                           SizedBox(height: 25),
                           Align(
@@ -163,7 +179,13 @@ class LoginScreen extends StatelessWidget {
                           SizedBox(height: height * 0.02),
                           CustomButton(
                             text: 'Entrar',
-                            onPressed: () {},
+                            onPressed: () async {
+                              print("Botão pequeno");
+                              String email = _emailController.text;
+                              String password = _passwordController.text;
+    
+                              var response = await UserService().signIn(password, email);
+                            },
                             backgroundColor: AppColors.ciano,
                             width: isDesktop ? width * 0.25 : width * 0.35,
                             maxWidth: 180,

@@ -1,22 +1,34 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserService {
-  final SupabaseClient supabaseClient;
+  final supabase = Supabase.instance.client;
 
-  UserService({required this.supabaseClient});
+  Future<AuthResponse?> signUpUser(String password, String email) async {
+    
+    try{
+      AuthResponse userData = await supabase.auth.signUp(password: password, email: email);
 
-  static Future<UserService> create() async {
-    return UserService(supabaseClient: Supabase.instance.client);
+      if(userData.user == null){
+        throw AuthException("Erro ao realizar o cadastro do pança larga");
+      }
+
+      return userData;
+
+    }catch(e){
+      return null;
+    }
   }
 
-  // You can now use supabaseClient wherever necessary
-  // For example, here's how you could use it to fetch data
-  Future<void> fetchData() async {
-    final response = await supabaseClient.from('users').select('id');
-    if( response.toList().length != 0){
-      print(response.toList()[0]);
-      return;
+  Future<AuthResponse> signIn(String password, String email) async {
+    AuthResponse userData = await supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+
+    if(userData.user == null){
+      throw AuthException("Erro ao realizar o login do pança larga");
     }
-    print("ta vazio");
+
+    return userData;
   }
 }
