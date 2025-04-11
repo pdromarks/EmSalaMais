@@ -16,7 +16,6 @@ class LoginScreen extends StatelessWidget {
     
     final bool isDesktop = width > 800;
     final bool isTablet = width > 600 && width <= 800;
-    final double titleFontSize = width * (isDesktop ? 0.02 : isTablet ? 0.03 : 0.05);
     final double regularFontSize = width * (isDesktop ? 0.015 : isTablet ? 0.02 : 0.04);
     final double buttonFontSize = width * (isDesktop ? 0.016 : isTablet ? 0.022 : 0.042);
     final double smallFontSize = width * (isDesktop ? 0.012 : isTablet ? 0.018 : 0.035);
@@ -34,7 +33,7 @@ class LoginScreen extends StatelessWidget {
         builder: (BuildContext context, BoxConstraints constraints) {
             return SingleChildScrollView(
               child: !isTablet && !isDesktop
-                  // Layout para Mobile (sem card)
+                  // Layout para Mobile
                   ? Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -92,7 +91,6 @@ class LoginScreen extends StatelessWidget {
                           String password = _passwordController.text;
 
                           try{
-
                           var response = await UserService().signUpUser(password, email);
                           }catch(e){
                             print(e);
@@ -107,7 +105,7 @@ class LoginScreen extends StatelessWidget {
                         ],
                       ),
                     )
-                  // Layout para Tablet e Desktop (com card)
+                  // Layout para Tablet e Desktop
                   : Container(
                       width: cardWidth,
                       margin: const EdgeInsets.symmetric(vertical: 20),
@@ -180,7 +178,6 @@ class LoginScreen extends StatelessWidget {
                           CustomButton(
                             text: 'Entrar',
                             onPressed: () async {
-                              print("Botão pequeno");
                               String email = _emailController.text;
                               String password = _passwordController.text;
     

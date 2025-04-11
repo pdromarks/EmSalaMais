@@ -1,4 +1,5 @@
 import 'package:em_sala_mais/backend/user/user.service.dart';
+import 'package:em_sala_mais/screens/academic_data_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(fontFamily: 'Inter'),
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      home: const AcademicDataScreen(),
     );
   }
 }

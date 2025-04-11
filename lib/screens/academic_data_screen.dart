@@ -91,18 +91,25 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
     // Verifica se deve exibir o dropdown de turma
     final exibirDropdownTurma = cursoTemMultiplasTurmas();
 
-    // Obtém o tamanho da tela para responsividade
+    //Responsividade
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
     final double height = screenSize.height;
     
-    // Calcula tamanhos proporcionais
     final double horizontalPadding = width * 0.08;
     final double logoHeight = height * 0.15;
     final double fieldWidth = width - (horizontalPadding * 2);
     final double halfFieldWidth = (fieldWidth / 2) - 5;
     final double verticalSpacing = height * 0.015;
     final double bottomSpacing = height * 0.1;
+
+    final double inputFontSize = (width * 0.04).clamp(14.0, 20.0);
+    final double titleFontSize = (width * 0.08).clamp(20.0, 40.0);
+    final double btnFontSize = (width * 0.06).clamp(8.0, 20.0);
+    final double iconSize = (width * 0.05).clamp(10.0, 20.0);
+  
+
+
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
@@ -126,20 +133,22 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                       'Seus Dados',
                       style: TextStyle(
                         color: AppColors.verdeUNICV,
-                        fontSize: width * 0.06,
+                        fontSize: titleFontSize,
                         fontWeight: FontWeight.w800,
                         fontFamily: 'Inter',
                       ),
                     ),
                     SizedBox(height: height * 0.02),
-                    const CustomTextField(
+                     CustomTextField(
                       label: 'Seu Nome',
                       borderColor: AppColors.verdeUNICV,
                       labelColor: AppColors.verdeUNICV,
+                      fontSize: inputFontSize,
                     ),
                     SizedBox(height: verticalSpacing),
                     CustomDropdown(
                       label: 'Seu Curso',
+                      fontSize: inputFontSize,
                       items: cursos,
                       selectedValue: selectedCurso,
                       onChanged: (value) {
@@ -162,6 +171,7 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                         CustomDropdown(
                           width: halfFieldWidth,
                           label: 'Semestre',
+                          fontSize: inputFontSize,
                           items: semestres,
                           selectedValue: selectedSemestre,
                           onChanged: (value) {
@@ -177,6 +187,7 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                         CustomDropdown(
                           width: halfFieldWidth,
                           label: 'Turno',
+                          fontSize: inputFontSize,
                           items: turnos,
                           selectedValue: selectedTurno,
                           onChanged: (value) {
@@ -193,7 +204,7 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                     ),
                     SizedBox(height: verticalSpacing),
                     SizedBox(
-                      height: 50, // Altura fixa para o dropdown
+                      height: 50,
                       child: Center(
                         child: Visibility(
                           visible: exibirDropdownTurma,
@@ -203,6 +214,7 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                           child: CustomDropdown(
                             width: halfFieldWidth,
                             label: 'Turma',
+                            fontSize: inputFontSize,
                             items: turmas,
                             selectedValue: selectedTurma,
                             onChanged: (value) {
@@ -226,8 +238,8 @@ class _AcademicDataScreenState extends State<AcademicDataScreen> {
                       icon: Icons.arrow_forward_rounded,
                       width: width * 0.45,
                       height: height * 0.055,
-                      fontSize: width * 0.035,
-                      iconSize: width * 0.05,
+                      fontSize: btnFontSize,
+                      iconSize: iconSize,
                     ),
                     SizedBox(height: height * 0.03),
                   ],
