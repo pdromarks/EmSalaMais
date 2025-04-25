@@ -46,25 +46,29 @@ class _CustomTextFieldState extends State<CustomTextField> {
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
     final isDesktop = screenWidth > 1024;
-    
+
     // Define valores padrão baseados no tamanho da tela
     final defaultHeight = screenHeight * 0.05;
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = isDesktop ? 22.0 : defaultFontSize * 1.2;
-    
+
     // Calcula a largura efetiva considerando o maxWidth
-    final effectiveWidth = widget.width != null 
-        ? (widget.maxWidth != null ? 
-            (widget.width! > widget.maxWidth! ? widget.maxWidth : widget.width) 
-            : widget.width)
-        : null;
-    
+    final effectiveWidth =
+        widget.width != null
+            ? (widget.maxWidth != null
+                ? (widget.width! > widget.maxWidth!
+                    ? widget.maxWidth
+                    : widget.width)
+                : widget.width)
+            : null;
+
     return Container(
       height: widget.height ?? defaultHeight,
       width: effectiveWidth,
-      constraints: widget.maxWidth != null 
-          ? BoxConstraints(maxWidth: widget.maxWidth!) 
-          : null,
+      constraints:
+          widget.maxWidth != null
+              ? BoxConstraints(maxWidth: widget.maxWidth!)
+              : null,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -79,9 +83,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
       child: TextField(
         controller: widget.controller,
         obscureText: widget.isPassword ? _obscureText : false,
-        style: TextStyle(
-          fontSize: widget.fontSize ?? defaultFontSize,
-        ),
+        style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize),
         decoration: InputDecoration(
           labelText: widget.label,
           labelStyle: TextStyle(
@@ -114,30 +116,32 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
           ),
           contentPadding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.03, 
-            vertical: screenHeight * 0.01
+            horizontal: screenWidth * 0.03,
+            vertical: screenHeight * 0.01,
           ),
-          prefixIcon: widget.prefixIcon != null 
-              ? Icon(
-                  widget.prefixIcon,
-                  color: widget.iconColor ?? Colors.grey,
-                  size: widget.iconSize ?? defaultIconSize,
-                )
-              : null,
-          suffixIcon: widget.isPassword
-              ? IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
+          prefixIcon:
+              widget.prefixIcon != null
+                  ? Icon(
+                    widget.prefixIcon,
                     color: widget.iconColor ?? Colors.grey,
                     size: widget.iconSize ?? defaultIconSize,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureText = !_obscureText;
-                    });
-                  },
-                )
-              : null,
+                  )
+                  : null,
+          suffixIcon:
+              widget.isPassword
+                  ? IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: widget.iconColor ?? Colors.grey,
+                      size: widget.iconSize ?? defaultIconSize,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  )
+                  : null,
         ),
       ),
     );
