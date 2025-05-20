@@ -1,3 +1,4 @@
+import 'package:em_sala_mais/widgets/custom_switch.dart';
 import 'package:flutter/material.dart';
 import '../widgets/custom_tf.dart';
 import '../widgets/custom_btn.dart';
@@ -14,7 +15,7 @@ class AccessKeyScreen extends StatelessWidget {
     final double height = screenSize.height;
     final bool isDesktop = width > 1024;
     final double textScaleFactor = MediaQuery.of(context).textScaleFactor;
-    
+
     // Calcula tamanhos proporcionais
     double horizontalPadding;
     double logoHeight;
@@ -24,7 +25,7 @@ class AccessKeyScreen extends StatelessWidget {
     double fontSize;
     double buttonFontSize;
     double iconSize;
-    
+
     if (isDesktop) {
       // Valores para desktop
       horizontalPadding = 0; // Não usado no layout desktop
@@ -39,7 +40,7 @@ class AccessKeyScreen extends StatelessWidget {
     } else {
       // Cálculos para dispositivos móveis
       horizontalPadding = width * 0.08;
-      logoHeight = height * 0.15; 
+      logoHeight = height * 0.15;
       verticalSpacing = height * 0.05;
       cardWidth = width - (horizontalPadding * 2);
       cardPadding = width * 0.06;
@@ -47,29 +48,43 @@ class AccessKeyScreen extends StatelessWidget {
       buttonFontSize = 16.0 / textScaleFactor;
       iconSize = 22.0 / textScaleFactor;
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           return Center(
             child: SingleChildScrollView(
-              child: isDesktop
-                ? _buildDesktopLayout(
-                    width, height, logoHeight, verticalSpacing,
-                    cardWidth, cardPadding, fontSize, buttonFontSize, iconSize
-                  )
-                : _buildMobileLayout(
-                    width, height, horizontalPadding, logoHeight,
-                    verticalSpacing, fontSize, buttonFontSize, iconSize
-                  ),
+              child:
+                  isDesktop
+                      ? _buildDesktopLayout(
+                        width,
+                        height,
+                        logoHeight,
+                        verticalSpacing,
+                        cardWidth,
+                        cardPadding,
+                        fontSize,
+                        buttonFontSize,
+                        iconSize,
+                      )
+                      : _buildMobileLayout(
+                        width,
+                        height,
+                        horizontalPadding,
+                        logoHeight,
+                        verticalSpacing,
+                        fontSize,
+                        buttonFontSize,
+                        iconSize,
+                      ),
             ),
           );
         },
       ),
     );
   }
-  
+
   Widget _buildDesktopLayout(
     double width,
     double height,
@@ -79,7 +94,7 @@ class AccessKeyScreen extends StatelessWidget {
     double cardPadding,
     double fontSize,
     double buttonFontSize,
-    double iconSize
+    double iconSize,
   ) {
     return Container(
       width: cardWidth,
@@ -125,11 +140,18 @@ class AccessKeyScreen extends StatelessWidget {
             fontSize: buttonFontSize,
             iconSize: iconSize,
           ),
+          CustomSwitch(
+            value: true,
+            onChanged: (value) {},
+            label: 'Label',
+            width: 100,
+            height: 50,
+          ),
         ],
       ),
     );
   }
-  
+
   Widget _buildMobileLayout(
     double width,
     double height,
@@ -138,7 +160,7 @@ class AccessKeyScreen extends StatelessWidget {
     double verticalSpacing,
     double fontSize,
     double buttonFontSize,
-    double iconSize
+    double iconSize,
   ) {
     return Container(
       width: width - (horizontalPadding * 2),
