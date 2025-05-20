@@ -1,29 +1,30 @@
-import 'package:em_sala_mais/backend/user/user.service.dart';
-import 'package:em_sala_mais/screens/academic_data_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'theme/theme.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url:
-        'https://gwbbvnaszswrtgvrwoum.supabase.co', // Replace with your Supabase URL
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YmJ2bmFzenN3cnRndnJ3b3VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2Mzk5ODIsImV4cCI6MjA1OTIxNTk4Mn0.Rmoi6eeM7hHLfCG2jCtPHf6HvpkLuE6bLvjCNeeOjlc', // Replace with your Supabase anon key key
-  );
-  runApp(const MyApp());
+void main() {
+  runApp(const EmSalaMaisApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class EmSalaMaisApp extends StatelessWidget {
+  const EmSalaMaisApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(fontFamily: 'Inter'),
+
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      theme: ThemeData(
+        primaryColor: AppColors.verdeUNICV,
+        fontFamily: 'Inter',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.verdeUNICV,
+          primary: AppColors.verdeUNICV,
+        ),
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xfff1f1f1),
+      ),
+      home: const HomeScreen(),
     );
   }
 }
