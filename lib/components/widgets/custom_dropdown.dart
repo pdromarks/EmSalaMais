@@ -5,10 +5,7 @@ class DropdownValueModel {
   final String value;
   final String label;
 
-  DropdownValueModel({
-    required this.value,
-    required this.label,
-  });
+  DropdownValueModel({required this.value, required this.label});
 
   @override
   bool operator ==(Object other) =>
@@ -78,10 +75,13 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   void _filterItems(String query) {
     setState(() {
-      _filteredItems = widget.items
-          .where((item) =>
-              item.label.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      _filteredItems =
+          widget.items
+              .where(
+                (item) =>
+                    item.label.toLowerCase().contains(query.toLowerCase()),
+              )
+              .toList();
     });
   }
 
@@ -117,7 +117,8 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   void _addOverlay() {
     final overlay = Overlay.of(context);
-    final renderBox = _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final position = renderBox.localToGlobal(Offset.zero);
@@ -133,123 +134,146 @@ class _CustomDropdownState extends State<CustomDropdown> {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
-    
+
     // Define valores padrão baseados no tamanho da tela
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = screenWidth * 0.05;
-    
+
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          offset: Offset(0, size.height),
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: screenHeight * 0.3,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
+      builder:
+          (context) => Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              offset: Offset(0, size.height),
+              child: Material(
+                elevation: 4,
                 borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.enableSearch)
-                    Padding(
-                      padding: EdgeInsets.all(screenWidth * 0.02),
-                      child: TextField(
-                        controller: _searchController,
-                        style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize * 0.8),
-                        decoration: InputDecoration(
-                          hintText: 'Pesquisar...',
-                          prefixIcon: Icon(
-                            Icons.search, 
-                            size: widget.iconSize ?? defaultIconSize,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide(color: AppColors.verdeUNICV),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide(color: AppColors.verdeUNICV),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.02,
-                            vertical: screenHeight * 0.005,
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: screenHeight * 0.3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.enableSearch)
+                        Padding(
+                          padding: EdgeInsets.all(screenWidth * 0.02),
+                          child: TextField(
+                            controller: _searchController,
+                            style: TextStyle(
+                              fontSize:
+                                  widget.fontSize ?? defaultFontSize * 0.8,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Pesquisar...',
+                              prefixIcon: Icon(
+                                Icons.search,
+                                size: widget.iconSize ?? defaultIconSize,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.02,
+                                vertical: screenHeight * 0.005,
+                              ),
+                            ),
+                            onChanged: _filterItems,
                           ),
                         ),
-                        onChanged: _filterItems,
-                      ),
-                    ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: _filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = _filteredItems[index];
-                        final isSelected = widget.selectedValue?.value == item.value;
-                        return InkWell(
-                          onTap: () {
-                            widget.onChanged(item);
-                            _removeOverlay();
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.04,
-                              vertical: screenHeight * 0.015,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.verdeUNICV.withOpacity(0.1) : null,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                if (isSelected)
-                                  Padding(
-                                    padding: EdgeInsets.only(right: screenWidth * 0.02),
-                                    child: Icon(
-                                      Icons.check,
-                                      color: AppColors.verdeUNICV,
-                                      size: widget.iconSize ?? defaultIconSize,
-                                    ),
-                                  ),
-                                Expanded(
-                                  child: Text(
-                                    item.label,
-                                    style: TextStyle(
-                                      fontSize: widget.fontSize ?? defaultFontSize,
-                                      color: isSelected
-                                          ? AppColors.verdeUNICV
-                                          : Colors.black87,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: _filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _filteredItems[index];
+                            final isSelected =
+                                widget.selectedValue?.value == item.value;
+                            return InkWell(
+                              onTap: () {
+                                widget.onChanged(item);
+                                _removeOverlay();
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.04,
+                                  vertical: screenHeight * 0.015,
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? AppColors.verdeUNICV.withOpacity(
+                                            0.1,
+                                          )
+                                          : null,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    if (isSelected)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          right: screenWidth * 0.02,
+                                        ),
+                                        child: Icon(
+                                          Icons.check,
+                                          color: AppColors.verdeUNICV,
+                                          size:
+                                              widget.iconSize ??
+                                              defaultIconSize,
+                                        ),
+                                      ),
+                                    Expanded(
+                                      child: Text(
+                                        item.label,
+                                        style: TextStyle(
+                                          fontSize:
+                                              widget.fontSize ??
+                                              defaultFontSize,
+                                          color:
+                                              isSelected
+                                                  ? AppColors.verdeUNICV
+                                                  : Colors.black87,
+                                          fontWeight:
+                                              isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
     );
   }
 
@@ -259,12 +283,12 @@ class _CustomDropdownState extends State<CustomDropdown> {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
-    
+
     // Define valores padrão baseados no tamanho da tela
     final defaultHeight = screenHeight * 0.05;
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = screenWidth * 0.05;
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return CompositedTransformTarget(
@@ -295,11 +319,17 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                    borderSide: BorderSide(
+                      color: AppColors.verdeUNICV,
+                      width: 2,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                    borderSide: BorderSide(
+                      color: AppColors.verdeUNICV,
+                      width: 2,
+                    ),
                   ),
                 ),
                 child: Row(

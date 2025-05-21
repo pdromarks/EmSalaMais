@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_room_card.dart';
-import 'custom_room_form_dialog.dart';
+import '../components/widgets/custom_room_card.dart';
+import '../components/screens/custom_form_dialog.dart';
+import '../theme/theme.dart';
 
 class RoomCrudScreen extends StatefulWidget {
   const RoomCrudScreen({super.key});
@@ -58,73 +59,147 @@ class _RoomCrudScreenState extends State<RoomCrudScreen> {
     // Confirma antes de excluir
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir a sala ${room['name']}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar exclusão'),
+            content: Text('Deseja realmente excluir a sala ${room['name']}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _rooms.removeWhere((r) => r['id'] == room['id']);
+                  });
+                },
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _rooms.removeWhere((r) => r['id'] == room['id']);
-              });
-            },
-            child: const Text(
-              'Excluir',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Future<void> _handleEdit(Map<String, dynamic> room) async {
+  Future<void> _showRoomFormDialog(Map<String, dynamic>? initialData) async {
+    final nameController = TextEditingController(
+      text: initialData?['name'] ?? '',
+    );
+
+    String? selectedBlock =
+        initialData?['block'] ?? _blocks[0]['nome_do_bloco'];
+    int desksCount = initialData?['desks_count'] ?? 30;
+    bool hasTV = initialData?['has_tv'] ?? false;
+    bool hasProjector = initialData?['has_projector'] ?? false;
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => CustomRoomFormDialog(
-        title: 'Editar Sala',
-        initialData: room,
-        blocks: _blocks,
-        onSave: (data) {
-          Navigator.pop(context, data);
-        },
-        onCancel: () => Navigator.pop(context),
-      ),
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => CustomFormDialog(
+                  title: initialData != null ? 'Editar Sala' : 'Nova Sala',
+                  fields: [
+                    CustomFormField(
+                      label: 'Nome da Sala',
+                      controller: nameController,
+                      icon: Icons.meeting_room,
+                    ),
+                    CustomFormField(
+                      label: 'Bloco',
+                      isDropdown: true,
+                      value: selectedBlock,
+                      items:
+                          _blocks.map((block) {
+                            return DropdownMenuItem<String>(
+                              value: block['nome_do_bloco'],
+                              child: Text(block['nome_do_bloco']),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedBlock = value;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Quantidade de Carteiras',
+                      isCounter: true,
+                      counterValue: desksCount,
+                      onCounterChanged: (value) {
+                        setState(() {
+                          desksCount = value;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Televisão',
+                      isSwitch: true,
+                      switchValue: hasTV,
+                      onSwitchChanged: (value) {
+                        setState(() {
+                          hasTV = value;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Projetor',
+                      isSwitch: true,
+                      switchValue: hasProjector,
+                      onSwitchChanged: (value) {
+                        setState(() {
+                          hasProjector = value;
+                        });
+                      },
+                    ),
+                  ],
+                  onSave: (data) {
+                    if (nameController.text.isEmpty || selectedBlock == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Preencha todos os campos obrigatórios',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final roomData = {
+                      'id': initialData?['id'] ?? DateTime.now().toString(),
+                      'name': nameController.text,
+                      'block': selectedBlock,
+                      'desks_count': desksCount,
+                      'has_tv': hasTV,
+                      'has_projector': hasProjector,
+                    };
+
+                    Navigator.pop(context, roomData);
+                  },
+                  onCancel: () => Navigator.pop(context),
+                ),
+          ),
     );
 
     if (result != null) {
       setState(() {
-        final index = _rooms.indexWhere((r) => r['id'] == result['id']);
-        if (index != -1) {
-          _rooms[index] = result;
+        if (initialData != null) {
+          final index = _rooms.indexWhere((r) => r['id'] == result['id']);
+          if (index != -1) {
+            _rooms[index] = result;
+          }
+        } else {
+          _rooms.add(result);
         }
       });
     }
-  }
 
-  Future<void> _handleAdd() async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => CustomRoomFormDialog(
-        title: 'Nova Sala',
-        blocks: _blocks,
-        onSave: (data) {
-          Navigator.pop(context, data);
-        },
-        onCancel: () => Navigator.pop(context),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _rooms.add(result);
-      });
-    }
+    nameController.dispose();
   }
 
   @override
@@ -137,8 +212,8 @@ class _RoomCrudScreenState extends State<RoomCrudScreen> {
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
       floatingActionButton: FloatingActionButton(
-        onPressed: _handleAdd,
-        backgroundColor: const Color(0xff507E32),
+        onPressed: () => _showRoomFormDialog(null),
+        backgroundColor: AppColors.verdeUNICV,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Padding(
@@ -156,7 +231,7 @@ class _RoomCrudScreenState extends State<RoomCrudScreen> {
               child: Text(
                 'Salas',
                 style: TextStyle(
-                  color: const Color(0xff507E32),
+                  color: AppColors.verdeUNICV,
                   fontSize: titleFontSize,
                   fontWeight: FontWeight.w800,
                   fontFamily: 'Inter',
@@ -165,38 +240,40 @@ class _RoomCrudScreenState extends State<RoomCrudScreen> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: _rooms.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Nenhuma sala cadastrada',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
+              child:
+                  _rooms.isEmpty
+                      ? Center(
+                        child: Text(
+                          'Nenhuma sala cadastrada',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
                         ),
+                      )
+                      : GridView.builder(
+                        padding: const EdgeInsets.all(8),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isDesktop ? 3 : (width > 600 ? 2 : 1),
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio:
+                              isDesktop ? 1.5 : (width > 600 ? 1.3 : 1.1),
+                        ),
+                        itemCount: _rooms.length,
+                        itemBuilder: (context, index) {
+                          final room = _rooms[index];
+                          return CustomRoomCard(
+                            name: room['name'],
+                            block: room['block'],
+                            desksCount: room['desks_count'],
+                            hasTV: room['has_tv'],
+                            hasProjector: room['has_projector'],
+                            onEdit: () => _showRoomFormDialog(room),
+                            onDelete: () => _handleDelete(room),
+                          );
+                        },
                       ),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(8),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isDesktop ? 3 : 1,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: isDesktop ? 1.5 : 2.5,
-                      ),
-                      itemCount: _rooms.length,
-                      itemBuilder: (context, index) {
-                        final room = _rooms[index];
-                        return CustomRoomCard(
-                          name: room['name'],
-                          block: room['block'],
-                          desksCount: room['desks_count'],
-                          hasTV: room['has_tv'],
-                          hasProjector: room['has_projector'],
-                          onEdit: () => _handleEdit(room),
-                          onDelete: () => _handleDelete(room),
-                        );
-                      },
-                    ),
             ),
           ],
         ),
