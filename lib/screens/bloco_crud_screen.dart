@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'custom_crud_screen.dart';
-import 'custom_form_dialog.dart';
+import '../components/screens/custom_crud_screen.dart';
+import '../components/screens/custom_form_dialog.dart';
 
 class BlocoCrudScreen extends StatefulWidget {
   const BlocoCrudScreen({super.key});
@@ -16,15 +16,13 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
       'id': '1',
       'nome_do_bloco': 'Bloco A',
       'descricao': 'Bloco de Engenharia',
-      'localizacao': 'Setor Norte',
-      'ativo': true,
+      'campus': 'Principal',
     },
     {
       'id': '2',
       'nome_do_bloco': 'Bloco B',
       'descricao': 'Bloco de Computação',
-      'localizacao': 'Setor Sul',
-      'ativo': true,
+      'campus': 'Principal',
     },
   ];
 
@@ -39,19 +37,15 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
       getValue: (item) => item['descricao'] as String,
     ),
     ColumnData(
-      label: 'Localização',
-      getValue: (item) => item['localizacao'] as String,
-    ),
-    ColumnData(
-      label: 'Status',
-      getValue: (item) => item['ativo'] ? 'Ativo' : 'Inativo',
+      label: 'Campus',
+      getValue: (item) => item['campus'] as String,
     ),
   ];
 
   Future<void> _handleEdit(Map<String, dynamic> item) async {
     final nomeController = TextEditingController(text: item['nome_do_bloco']);
-    final descricaoController = TextEditingController(text: item['descrição']);
-    final localizacaoController = TextEditingController(text: item['localização']);
+    final descricaoController = TextEditingController(text: item['descricao']);
+    final campusController = TextEditingController(text: item['campus']);
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -70,8 +64,8 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
             icon: Icons.description,
           ),
           CustomFormField(
-            label: 'Localização',
-            controller: localizacaoController,
+            label: 'Campus',
+            controller: campusController,
             icon: Icons.location_on,
           ),
         ],
@@ -79,6 +73,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
           Navigator.pop(context, formData);
         },
         onCancel: () => Navigator.pop(context),
+        initialSwitchValue: false,
       ),
     );
 
@@ -94,7 +89,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
     // Limpar os controllers
     nomeController.dispose();
     descricaoController.dispose();
-    localizacaoController.dispose();
+    campusController.dispose();
   }
 
   void _handleDelete(Map<String, dynamic> item) {
@@ -106,7 +101,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
   Future<void> _handleAdd() async {
     final nomeController = TextEditingController();
     final descricaoController = TextEditingController();
-    final localizacaoController = TextEditingController();
+    final campusController = TextEditingController();
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -124,8 +119,8 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
             icon: Icons.description,
           ),
           CustomFormField(
-            label: 'Localização',
-            controller: localizacaoController,
+            label: 'Campus',
+            controller: campusController,
             icon: Icons.location_on,
           ),
         ],
@@ -133,6 +128,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
           Navigator.pop(context, formData);
         },
         onCancel: () => Navigator.pop(context),
+        initialSwitchValue: false,
       ),
     );
 
@@ -145,7 +141,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
     // Limpar os controllers
     nomeController.dispose();
     descricaoController.dispose();
-    localizacaoController.dispose();
+    campusController.dispose();
   }
 
   @override

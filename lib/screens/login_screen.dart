@@ -1,8 +1,8 @@
 import 'package:em_sala_mais/backend/user/user.service.dart';
 import 'package:em_sala_mais/screens/404.dart';
 import 'package:flutter/material.dart';
-import '../../../widgets/custom_tf.dart';
-import '../../../widgets/custom_btn.dart';
+import '../components/widgets/custom_tf.dart';
+import '../components/widgets/custom_btn.dart';
 import '../../../theme/theme.dart';
 
 class LoginScreen extends StatelessWidget {
