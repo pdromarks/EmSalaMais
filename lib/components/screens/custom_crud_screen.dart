@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_tf.dart';
 import '../widgets/custom_btn.dart';
 import '../widgets/custom_switch.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 
 class CustomField {
   final String label;
@@ -160,7 +160,7 @@ class _CustomCrudScreenState extends State<CustomCrudScreen> {
                                 ),
                                 const DataColumn(
                                   label: SizedBox(
-                                    width: 82, // 90 - 8 (padding)
+                                    width: 80, // 90 - 8 (padding)
                                     child: Text('Ações'),
                                   ),
                                 ),

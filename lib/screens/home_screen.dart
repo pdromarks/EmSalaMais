@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'bloco_crud_screen.dart';
+import 'room_crud_screen.dart';
 
 class MenuItem {
   final String title;
@@ -38,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     MenuItem(
       title: 'Salas',
       icon: Icons.meeting_room,
-      screen: const Center(child: Text('Salas')), // Placeholder
+      screen: const RoomCrudScreen(),
     ),
     MenuItem(
       title: 'Professores',
@@ -80,9 +81,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     Scaffold.of(context).openDrawer();
                   },
                 ),
+                SizedBox(
+                  width: 10,
+                ),
               Image.asset(
-                'assets/images/emsalamais.png',
-                height: 40,
+                'assets/images/LogoUNICV.png',
+                height: 45,
               ),
               const SizedBox(width: 10),
             ],

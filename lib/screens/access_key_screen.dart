@@ -1,7 +1,7 @@
-import 'package:em_sala_mais/widgets/custom_switch.dart';
+import 'package:em_sala_mais/components/widgets/custom_switch.dart';
 import 'package:flutter/material.dart';
-import '../widgets/custom_tf.dart';
-import '../widgets/custom_btn.dart';
+import '../components/widgets/custom_tf.dart';
+import '../components/widgets/custom_btn.dart';
 import '../theme/theme.dart';
 
 class AccessKeyScreen extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_tf.dart';
 import '../widgets/custom_btn.dart';
 import '../widgets/custom_switch.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 
 class CustomFormField {
   final String label;
@@ -34,7 +34,7 @@ class CustomFormDialog extends StatefulWidget {
     required this.fields,
     required this.onSave,
     required this.onCancel,
-    this.showSwitch = true,
+    this.showSwitch = false,
     this.switchLabel = 'Ativo',
     this.initialSwitchValue = true,
     this.initialData,
@@ -151,7 +151,7 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                       text: 'Cancelar',
                       onPressed: widget.onCancel,
                       backgroundColor: Colors.grey,
-                      width: isDesktop ? width * 0.08 : width * 0.25,
+                      width: isDesktop ? width * 0.1 : width * 0.25,
                       height: height * 0.05,
                       fontSize: buttonFontSize,
                     ),
@@ -185,4 +185,4 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
       ),
     );
   }
-}
+} 
