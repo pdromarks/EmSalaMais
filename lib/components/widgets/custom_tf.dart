@@ -48,7 +48,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
     final isDesktop = screenWidth > 1024;
 
     // Define valores padrão baseados no tamanho da tela
-    final defaultHeight = screenHeight * 0.05;
+    final defaultHeight = screenHeight * 0.08;
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = isDesktop ? 22.0 : defaultFontSize * 1.2;
 

@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'bloco_crud_screen.dart';
 import 'room_crud_screen.dart';
+import 'teacher_crud_screen.dart';
+import 'subject_crud_screen.dart';
+import 'course_crud_screen.dart';
+import 'class_crud_screen.dart';
+import 'schedule_crud_screen.dart';
 
 class MenuItem {
   final String title;
   final IconData icon;
   final Widget screen;
 
-  MenuItem({
-    required this.title,
-    required this.icon,
-    required this.screen,
-  });
+  MenuItem({required this.title, required this.icon, required this.screen});
 }
 
 class HomeScreen extends StatefulWidget {
@@ -44,17 +45,27 @@ class _HomeScreenState extends State<HomeScreen> {
     MenuItem(
       title: 'Professores',
       icon: Icons.person,
-      screen: const Center(child: Text('Professores')), // Placeholder
+      screen: const TeacherCrudScreen(),
     ),
     MenuItem(
       title: 'Disciplinas',
       icon: Icons.book,
-      screen: const Center(child: Text('Disciplinas')), // Placeholder
+      screen: const SubjectrCrudScreen(),
+    ),
+    MenuItem(
+      title: 'Cursos',
+      icon: Icons.school,
+      screen: const CourseCrudScreen(),
+    ),
+    MenuItem(
+      title: 'Turmas',
+      icon: Icons.groups,
+      screen: const ClassCrudScreen(),
     ),
     MenuItem(
       title: 'Horários',
       icon: Icons.schedule,
-      screen: const Center(child: Text('Horários')), // Placeholder
+      screen: const ScheduleCrudScreen(),
     ),
   ];
 
@@ -72,29 +83,28 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 2,
         automaticallyImplyLeading: false,
         title: Builder(
-          builder: (context) => Row(
-            children: [
-              if (!isDesktop) 
-                IconButton(
-                  icon: const Icon(Icons.menu, color: AppColors.verdeUNICV),
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                ),
-                SizedBox(
-                  width: 10,
-                ),
-              Image.asset(
-                'assets/images/LogoUNICV.png',
-                height: 45,
+          builder:
+              (context) => Row(
+                children: [
+                  if (!isDesktop)
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: AppColors.verdeUNICV),
+                      onPressed: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                    ),
+                  SizedBox(width: 10),
+                  Image.asset('assets/images/LogoUNICV.png', height: 45),
+                  const SizedBox(width: 10),
+                ],
               ),
-              const SizedBox(width: 10),
-            ],
-          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.verdeUNICV),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.verdeUNICV,
+            ),
             onPressed: () {},
           ),
           IconButton(
@@ -132,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == index;
-                
+
                 return ListTile(
                   leading: Icon(
                     item.icon,
@@ -142,7 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     item.title,
                     style: TextStyle(
                       color: isSelected ? AppColors.verdeUNICV : Colors.grey,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   selected: isSelected,
@@ -161,10 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.grey),
-            title: const Text(
-              'Sair',
-              style: TextStyle(color: Colors.grey),
-            ),
+            title: const Text('Sair', style: TextStyle(color: Colors.grey)),
             onTap: () {
               // Implementar lógica de logout
             },

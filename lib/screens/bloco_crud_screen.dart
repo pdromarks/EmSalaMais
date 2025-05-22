@@ -36,10 +36,7 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
       label: 'Descrição',
       getValue: (item) => item['descricao'] as String,
     ),
-    ColumnData(
-      label: 'Campus',
-      getValue: (item) => item['campus'] as String,
-    ),
+    ColumnData(label: 'Campus', getValue: (item) => item['campus'] as String),
   ];
 
   Future<void> _handleEdit(Map<String, dynamic> item) async {
@@ -49,37 +46,39 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => CustomFormDialog(
-        title: 'Editar Bloco',
-        initialData: item,
-        fields: [
-          CustomFormField(
-            label: 'Nome do Bloco',
-            controller: nomeController,
-            icon: Icons.apartment,
+      builder:
+          (context) => CustomFormDialog(
+            title: 'Editar Bloco',
+            initialData: item,
+            fields: [
+              CustomFormField(
+                label: 'Nome do Bloco',
+                controller: nomeController,
+                icon: Icons.apartment,
+              ),
+              CustomFormField(
+                label: 'Descrição',
+                controller: descricaoController,
+                icon: Icons.description,
+              ),
+              CustomFormField(
+                label: 'Campus',
+                controller: campusController,
+                icon: Icons.location_on,
+              ),
+            ],
+            onSave: (formData) {
+              Navigator.pop(context, formData);
+            },
+            onCancel: () => Navigator.pop(context),
           ),
-          CustomFormField(
-            label: 'Descrição',
-            controller: descricaoController,
-            icon: Icons.description,
-          ),
-          CustomFormField(
-            label: 'Campus',
-            controller: campusController,
-            icon: Icons.location_on,
-          ),
-        ],
-        onSave: (formData) {
-          Navigator.pop(context, formData);
-        },
-        onCancel: () => Navigator.pop(context),
-        initialSwitchValue: false,
-      ),
     );
 
     if (result != null) {
       setState(() {
-        final index = _blocos.indexWhere((bloco) => bloco['id'] == result['id']);
+        final index = _blocos.indexWhere(
+          (bloco) => bloco['id'] == result['id'],
+        );
         if (index != -1) {
           _blocos[index] = result;
         }
@@ -105,31 +104,31 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => CustomFormDialog(
-        title: 'Novo Bloco',
-        fields: [
-          CustomFormField(
-            label: 'Nome do Bloco',
-            controller: nomeController,
-            icon: Icons.apartment,
+      builder:
+          (context) => CustomFormDialog(
+            title: 'Novo Bloco',
+            fields: [
+              CustomFormField(
+                label: 'Nome do Bloco',
+                controller: nomeController,
+                icon: Icons.apartment,
+              ),
+              CustomFormField(
+                label: 'Descrição',
+                controller: descricaoController,
+                icon: Icons.description,
+              ),
+              CustomFormField(
+                label: 'Campus',
+                controller: campusController,
+                icon: Icons.location_on,
+              ),
+            ],
+            onSave: (formData) {
+              Navigator.pop(context, formData);
+            },
+            onCancel: () => Navigator.pop(context),
           ),
-          CustomFormField(
-            label: 'Descrição',
-            controller: descricaoController,
-            icon: Icons.description,
-          ),
-          CustomFormField(
-            label: 'Campus',
-            controller: campusController,
-            icon: Icons.location_on,
-          ),
-        ],
-        onSave: (formData) {
-          Navigator.pop(context, formData);
-        },
-        onCancel: () => Navigator.pop(context),
-        initialSwitchValue: false,
-      ),
     );
 
     if (result != null) {
@@ -150,7 +149,8 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
       title: 'Blocos',
       columns: _columns,
       items: _blocos,
-      fields: const [], // Não usado aqui pois temos uma tela separada para o formulário
+      fields:
+          const [], // Não usado aqui pois temos uma tela separada para o formulário
       onEdit: _handleEdit,
       onDelete: _handleDelete,
       onAdd: _handleAdd,
