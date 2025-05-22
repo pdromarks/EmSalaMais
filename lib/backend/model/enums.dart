@@ -1,0 +1,4 @@
+enum Campus {
+  maringa,
+  teste
+}
