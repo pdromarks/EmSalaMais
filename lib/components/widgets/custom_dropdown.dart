@@ -18,6 +18,25 @@ class DropdownValueModel {
   int get hashCode => value.hashCode;
 }
 
+// Gerenciador global para controlar os dropdowns abertos
+class DropdownManager {
+  static String? _openDropdownId;
+  static VoidCallback? _closeCallback;
+
+  static void openDropdown(String id, VoidCallback closeCallback) {
+    if (_openDropdownId != null && _openDropdownId != id) {
+      _closeCallback?.call();
+    }
+    _openDropdownId = id;
+    _closeCallback = closeCallback;
+  }
+
+  static void closeDropdown() {
+    _openDropdownId = null;
+    _closeCallback = null;
+  }
+}
+
 class CustomDropdown extends StatefulWidget {
   final List<DropdownValueModel> items;
   final DropdownValueModel? selectedValue;
@@ -75,13 +94,10 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   void _filterItems(String query) {
     setState(() {
-      _filteredItems =
-          widget.items
-              .where(
-                (item) =>
-                    item.label.toLowerCase().contains(query.toLowerCase()),
-              )
-              .toList();
+      _filteredItems = widget.items
+          .where((item) =>
+              item.label.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
@@ -104,6 +120,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
     _isOpen = false;
     _searchController.clear();
     _filteredItems = widget.items;
+    DropdownManager.closeDropdown();
   }
 
   void _toggleOverlay() {
@@ -116,9 +133,10 @@ class _CustomDropdownState extends State<CustomDropdown> {
   }
 
   void _addOverlay() {
+    DropdownManager.openDropdown(widget.dropdownId, _removeOverlay);
+    
     final overlay = Overlay.of(context);
-    final renderBox =
-        _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox = _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final position = renderBox.localToGlobal(Offset.zero);
@@ -129,232 +147,186 @@ class _CustomDropdownState extends State<CustomDropdown> {
     _isOpen = true;
   }
 
-  OverlayEntry _createOverlayEntry(Offset position, Size size) {
-    // Obtém o tamanho da tela para cálculos responsivos
-    final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
-    final screenHeight = screenSize.height;
-
-    // Define valores padrão baseados no tamanho da tela
-    final defaultFontSize = screenWidth * 0.04;
-    final defaultIconSize = screenWidth * 0.05;
-
-    return OverlayEntry(
-      builder:
-          (context) => Positioned(
-            width: size.width,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              offset: Offset(0, size.height),
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  constraints: BoxConstraints(maxHeight: screenHeight * 0.3),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.enableSearch)
-                        Padding(
-                          padding: EdgeInsets.all(screenWidth * 0.02),
-                          child: TextField(
-                            controller: _searchController,
-                            style: TextStyle(
-                              fontSize:
-                                  widget.fontSize ?? defaultFontSize * 0.8,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Pesquisar...',
-                              prefixIcon: Icon(
-                                Icons.search,
-                                size: widget.iconSize ?? defaultIconSize,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide(
-                                  color: AppColors.verdeUNICV,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide(
-                                  color: AppColors.verdeUNICV,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide(
-                                  color: AppColors.verdeUNICV,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.02,
-                                vertical: screenHeight * 0.005,
-                              ),
-                            ),
-                            onChanged: _filterItems,
-                          ),
-                        ),
-                      Expanded(
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: _filteredItems.length,
-                          itemBuilder: (context, index) {
-                            final item = _filteredItems[index];
-                            final isSelected =
-                                widget.selectedValue?.value == item.value;
-                            return InkWell(
-                              onTap: () {
-                                widget.onChanged(item);
-                                _removeOverlay();
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: screenWidth * 0.04,
-                                  vertical: screenHeight * 0.015,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isSelected
-                                          ? AppColors.verdeUNICV.withOpacity(
-                                            0.1,
-                                          )
-                                          : null,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    if (isSelected)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          right: screenWidth * 0.02,
-                                        ),
-                                        child: Icon(
-                                          Icons.check,
-                                          color: AppColors.verdeUNICV,
-                                          size:
-                                              widget.iconSize ??
-                                              defaultIconSize,
-                                        ),
-                                      ),
-                                    Expanded(
-                                      child: Text(
-                                        item.label,
-                                        style: TextStyle(
-                                          fontSize:
-                                              widget.fontSize ??
-                                              defaultFontSize,
-                                          color:
-                                              isSelected
-                                                  ? AppColors.verdeUNICV
-                                                  : Colors.black87,
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.bold
-                                                  : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        key: _dropdownKey,
+        width: widget.width,
+        height: widget.height ?? 48,
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.verdeUNICV, width: 2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _toggleOverlay,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.selectedValue?.label ?? widget.label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: widget.selectedValue != null
+                            ? Colors.black87
+                            : AppColors.verdeUNICV.withOpacity(0.7),
                       ),
-                    ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                  Icon(
+                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: AppColors.verdeUNICV,
+                    size: 24,
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Obtém o tamanho da tela para cálculos responsivos
+  OverlayEntry _createOverlayEntry(Offset position, Size size) {
     final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
 
-    // Define valores padrão baseados no tamanho da tela
-    final defaultHeight = screenHeight * 0.05;
-    final defaultFontSize = screenWidth * 0.04;
-    final defaultIconSize = screenWidth * 0.05;
+    // Calcula a posição do overlay
+    final isOffScreen = position.dy + size.height + 250 > screenHeight;
+    final verticalOffset = isOffScreen ? -(250 + 5) : size.height + 5;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return CompositedTransformTarget(
+    return OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx,
+        top: position.dy + (isOffScreen ? -5.0 : 0.0),
+        width: size.width,
+        child: CompositedTransformFollower(
           link: _layerLink,
-          child: Container(
-            key: _dropdownKey,
-            height: widget.height ?? defaultHeight,
-            width: widget.width ?? constraints.maxWidth,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: InkWell(
-              onTap: _toggleOverlay,
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: widget.label,
-                  labelStyle: TextStyle(
-                    color: AppColors.verdeUNICV,
-                    fontSize: widget.fontSize ?? defaultFontSize,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                  contentPadding: EdgeInsets.only(
-                    left: screenWidth * 0.04,
-                    right: screenWidth * 0.04,
-                    bottom: screenHeight * 0.01,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: AppColors.verdeUNICV,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: AppColors.verdeUNICV,
-                      width: 2,
-                    ),
-                  ),
+          offset: Offset(0, verticalOffset.toDouble()),
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 250),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.verdeUNICV,
+                  width: 2,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.selectedValue?.label ?? '',
-                        style: TextStyle(
-                          fontSize: widget.fontSize ?? defaultFontSize,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.enableSearch)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: 'Pesquisar...',
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            size: 20,
+                            color: AppColors.verdeUNICV,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: AppColors.verdeUNICV,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: AppColors.verdeUNICV,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: AppColors.verdeUNICV,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                         ),
+                        onChanged: _filterItems,
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.verdeUNICV,
-                      size: widget.iconSize ?? defaultIconSize,
+                  Flexible(
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: _filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _filteredItems[index];
+                        final isSelected = widget.selectedValue?.value == item.value;
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              widget.onChanged(item);
+                              _removeOverlay();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.verdeUNICV.withOpacity(0.1)
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  if (isSelected)
+                                    const Padding(
+                                      padding: EdgeInsets.only(right: 8),
+                                      child: Icon(
+                                        Icons.check,
+                                        color: AppColors.verdeUNICV,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: Text(
+                                      item.label,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

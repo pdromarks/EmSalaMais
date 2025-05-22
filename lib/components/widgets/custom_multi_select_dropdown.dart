@@ -61,13 +61,18 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    final defaultFontSize = screenWidth * 0.04;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
           style: TextStyle(
-            fontSize: widget.fontSize ?? 16,
+            fontSize: widget.fontSize ?? defaultFontSize * 0.9,
             fontWeight: FontWeight.bold,
             color: AppColors.verdeUNICV,
           ),
@@ -82,7 +87,7 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
             children: [
               // Campo de busca
               SizedBox(
-                height: 48, // Altura padrão do TextField do Material Design
+                height: 48,
                 child: Row(
                   children: [
                     Expanded(
@@ -92,7 +97,7 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                           controller: _searchController,
                           focusNode: _focusNode,
                           style: TextStyle(
-                            fontSize: (widget.fontSize ?? 16) * 0.9,
+                            fontSize: widget.fontSize ?? defaultFontSize * 0.9,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Pesquisar...',
@@ -102,7 +107,7 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                               vertical: 8,
                             ),
                             hintStyle: TextStyle(
-                              fontSize: (widget.fontSize ?? 16) * 0.9,
+                              fontSize: widget.fontSize ?? defaultFontSize * 0.9,
                               color: AppColors.verdeUNICV.withOpacity(0.7),
                             ),
                           ),
@@ -123,13 +128,11 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                       ),
                     ),
                     SizedBox(
-                      width: 48, // Largura padrão do IconButton
-                      height: 48, // Altura padrão do IconButton
+                      width: 48,
+                      height: 48,
                       child: IconButton(
                         icon: Icon(
-                          _isExpanded
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
+                          _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                           color: AppColors.verdeUNICV,
                         ),
                         onPressed: () {
@@ -149,34 +152,30 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 4,
-                    children:
-                        widget.selectedValues.map((value) {
-                          return Chip(
-                            backgroundColor: AppColors.verdeUNICV.withOpacity(
-                              0.1,
-                            ),
-                            label: Text(
-                              value,
-                              style: TextStyle(
-                                fontSize: (widget.fontSize ?? 16) * 0.8,
-                                color: AppColors.verdeUNICV,
-                              ),
-                            ),
-                            deleteIcon: const Icon(Icons.close, size: 18),
-                            onDeleted: () {
-                              final newValues = List<String>.from(
-                                widget.selectedValues,
-                              )..remove(value);
-                              widget.onChanged(newValues);
-                            },
-                          );
-                        }).toList(),
+                    children: widget.selectedValues.map((value) {
+                      return Chip(
+                        backgroundColor: AppColors.verdeUNICV.withOpacity(0.1),
+                        label: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: (widget.fontSize ?? defaultFontSize) * 0.8,
+                            color: AppColors.verdeUNICV,
+                          ),
+                        ),
+                        deleteIcon: const Icon(Icons.close, size: 18),
+                        onDeleted: () {
+                          final newValues = List<String>.from(widget.selectedValues)
+                            ..remove(value);
+                          widget.onChanged(newValues);
+                        },
+                      );
+                    }).toList(),
                   ),
                 ),
               // Lista de opções
               if (_isExpanded)
                 Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
+                  constraints: BoxConstraints(maxHeight: screenHeight * 0.3),
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
@@ -191,15 +190,12 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                       final option = _filteredOptions[index];
                       final isSelected = widget.selectedValues.contains(option);
                       return Material(
-                        color:
-                            isSelected
-                                ? AppColors.verdeUNICV.withOpacity(0.05)
-                                : Colors.transparent,
+                        color: isSelected
+                            ? AppColors.verdeUNICV.withOpacity(0.1)
+                            : Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            final newValues = List<String>.from(
-                              widget.selectedValues,
-                            );
+                            final newValues = List<String>.from(widget.selectedValues);
                             if (isSelected) {
                               newValues.remove(option);
                             } else {
@@ -207,43 +203,39 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
                             }
                             widget.onChanged(newValues);
                           },
-                          child: SizedBox(
-                            height: 40, // Altura padrão do ListTile denso
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 40, // Largura fixa para o Checkbox
-                                    child: Checkbox(
-                                      value: isSelected,
-                                      onChanged: (bool? value) {
-                                        final newValues = List<String>.from(
-                                          widget.selectedValues,
-                                        );
-                                        if (value == true) {
-                                          newValues.add(option);
-                                        } else {
-                                          newValues.remove(option);
-                                        }
-                                        widget.onChanged(newValues);
-                                      },
-                                      activeColor: AppColors.verdeUNICV,
+                          child: Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  child: Checkbox(
+                                    value: isSelected,
+                                    onChanged: (bool? value) {
+                                      final newValues =
+                                          List<String>.from(widget.selectedValues);
+                                      if (value == true) {
+                                        newValues.add(option);
+                                      } else {
+                                        newValues.remove(option);
+                                      }
+                                      widget.onChanged(newValues);
+                                    },
+                                    activeColor: AppColors.verdeUNICV,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    option,
+                                    style: TextStyle(
+                                      fontSize: widget.fontSize ?? defaultFontSize * 0.9,
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                  Expanded(
-                                    child: Text(
-                                      option,
-                                      style: TextStyle(
-                                        fontSize: (widget.fontSize ?? 16) * 0.9,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

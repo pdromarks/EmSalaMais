@@ -3,6 +3,7 @@ import '../widgets/custom_tf.dart';
 import '../widgets/custom_btn.dart';
 import '../widgets/custom_switch.dart';
 import '../widgets/custom_counter.dart';
+import '../widgets/custom_dropdown.dart';
 import '../../theme/theme.dart';
 
 class CustomFormField {
@@ -124,44 +125,53 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                   Widget fieldWidget;
 
                   if (field.isDropdown) {
-                    fieldWidget = Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: AppColors.verdeUNICV,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: field.value,
-                          hint: Text(
-                            field.label,
-                            style: TextStyle(
-                              fontSize: fontSize * 0.9,
-                              color: AppColors.verdeUNICV.withOpacity(0.7),
-                            ),
-                          ),
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: AppColors.verdeUNICV,
-                            size: iconSize,
-                          ),
+                    fieldWidget = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          field.label,
                           style: TextStyle(
                             fontSize: fontSize * 0.9,
-                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.verdeUNICV,
                           ),
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          items: field.items,
-                          onChanged: field.onChanged,
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        CustomDropdown(
+                          items: field.items?.map((item) => DropdownValueModel(
+                            value: item.value ?? '',
+                            label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
+                          )).toList() ?? [],
+                          selectedValue: field.value != null
+                              ? DropdownValueModel(
+                                  value: field.value!,
+                                  label: field.items
+                                          ?.firstWhere(
+                                            (item) => item.value == field.value,
+                                            orElse: () => const DropdownMenuItem(
+                                              value: '',
+                                              child: Text(''),
+                                            ),
+                                          )
+                                          .child is Text
+                                      ? (field.items!.firstWhere(
+                                          (item) => item.value == field.value,
+                                          orElse: () => const DropdownMenuItem(
+                                            value: '',
+                                            child: Text(''),
+                                          ),
+                                        ).child as Text)
+                                          .data ??
+                                          ''
+                                      : '',
+                                )
+                              : null,
+                          onChanged: (value) => field.onChanged?.call(value?.value),
+                          label: field.label,
+                          dropdownId: field.label,
+                          enableSearch: true,
+                        ),
+                      ],
                     );
                   } else if (field.isCounter) {
                     fieldWidget = CustomCounter(
