@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import '../components/screens/custom_crud_screen.dart';
-import '../components/screens/custom_form_dialog.dart';
-import '../theme/theme.dart';
+import '../../components/screens/custom_crud_screen.dart';
+import '../../components/screens/custom_form_dialog.dart';
+import '../../theme/theme.dart';
 
-class CourseCrudScreen extends StatefulWidget {
-  const CourseCrudScreen({super.key});
+class SubjectrCrudScreen extends StatefulWidget {
+  const SubjectrCrudScreen({super.key});
 
   @override
-  State<CourseCrudScreen> createState() => _CourseCrudScreenState();
+  State<SubjectrCrudScreen> createState() => _SubjectrCrudScreenState();
 }
 
-class _CourseCrudScreenState extends State<CourseCrudScreen> {
-  // Lista de cursos (simulando um banco de dados)
-  final List<Map<String, dynamic>> _cursos = [
-    {'id': '1', 'nome': 'Engenharia de Software'},
-    {'id': '2', 'nome': 'Ciência da Computação'},
+class _SubjectrCrudScreenState extends State<SubjectrCrudScreen> {
+  // Lista de disciplinas (simulando um banco de dados)
+  final List<Map<String, dynamic>> _disciplinas = [
+    {'id': '1', 'nome': 'Metodologias Ágeis'},
+    {'id': '2', 'nome': 'Java com orientação a objetos'},
   ];
 
   // Definição das colunas da tabela
   final List<ColumnData> _columns = [
     ColumnData(
-      label: 'Nome do Curso',
+      label: 'Nome da Disciplina',
       getValue: (item) => item['nome'] as String,
     ),
   ];
@@ -32,28 +32,31 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
       context: context,
       builder:
           (context) => CustomFormDialog(
-            title: 'Editar Curso',
+            title: 'Editar Disciplina',
             fields: [
               CustomFormField(
-                label: 'Nome do Curso',
+                label: 'Nome da Disciplina',
                 controller: nomeController,
-                icon: Icons.school,
+                icon: Icons.book,
               ),
             ],
             onSave: (data) {
               if (nomeController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Preencha o nome do curso'),
+                    content: Text('Preencha o nome da disciplina'),
                     backgroundColor: Colors.red,
                   ),
                 );
                 return;
               }
 
-              final cursoData = {'id': item['id'], 'nome': nomeController.text};
+              final disciplinaData = {
+                'id': item['id'],
+                'nome': nomeController.text,
+              };
 
-              Navigator.pop(context, cursoData);
+              Navigator.pop(context, disciplinaData);
             },
             onCancel: () => Navigator.pop(context),
           ),
@@ -61,11 +64,11 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
 
     if (result != null) {
       setState(() {
-        final index = _cursos.indexWhere(
-          (curso) => curso['id'] == result['id'],
+        final index = _disciplinas.indexWhere(
+          (disc) => disc['id'] == result['id'],
         );
         if (index != -1) {
-          _cursos[index] = result;
+          _disciplinas[index] = result;
         }
       });
     }
@@ -75,7 +78,7 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
 
   void _handleDelete(Map<String, dynamic> item) {
     setState(() {
-      _cursos.removeWhere((curso) => curso['id'] == item['id']);
+      _disciplinas.removeWhere((disc) => disc['id'] == item['id']);
     });
   }
 
@@ -86,31 +89,31 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
       context: context,
       builder:
           (context) => CustomFormDialog(
-            title: 'Novo Curso',
+            title: 'Nova Disciplina',
             fields: [
               CustomFormField(
-                label: 'Nome do Curso',
+                label: 'Nome da Disciplina',
                 controller: nomeController,
-                icon: Icons.school,
+                icon: Icons.book,
               ),
             ],
             onSave: (data) {
               if (nomeController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Preencha o nome do curso'),
+                    content: Text('Preencha o nome da disciplina'),
                     backgroundColor: Colors.red,
                   ),
                 );
                 return;
               }
 
-              final cursoData = {
+              final disciplinaData = {
                 'id': DateTime.now().toString(),
                 'nome': nomeController.text,
               };
 
-              Navigator.pop(context, cursoData);
+              Navigator.pop(context, disciplinaData);
             },
             onCancel: () => Navigator.pop(context),
           ),
@@ -118,7 +121,7 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
 
     if (result != null) {
       setState(() {
-        _cursos.add(result);
+        _disciplinas.add(result);
       });
     }
 
@@ -128,9 +131,9 @@ class _CourseCrudScreenState extends State<CourseCrudScreen> {
   @override
   Widget build(BuildContext context) {
     return CustomCrudScreen(
-      title: 'Cursos',
+      title: 'Disciplinas',
       columns: _columns,
-      items: _cursos,
+      items: _disciplinas,
       fields:
           const [], // Não usado aqui pois temos uma tela separada para o formulário
       onEdit: _handleEdit,

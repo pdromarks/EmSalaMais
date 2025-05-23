@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../components/widgets/custom_tf.dart';
-import '../components/widgets/custom_btn.dart';
-import '../components/widgets/custom_dropdown.dart';
-import '../theme/theme.dart';
+import '../../components/widgets/custom_tf.dart';
+import '../../components/widgets/custom_btn.dart';
+import '../../components/widgets/custom_dropdown.dart';
+import '../../theme/theme.dart';
 
 class AcademicDataScreen extends StatefulWidget {
   const AcademicDataScreen({super.key});

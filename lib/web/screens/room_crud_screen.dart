@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../components/widgets/custom_room_card.dart';
-import '../components/screens/custom_form_dialog.dart';
-import '../theme/theme.dart';
+import '../../components/widgets/custom_room_card.dart';
+import '../../components/screens/custom_form_dialog.dart';
+import '../../theme/theme.dart';
 
 class RoomCrudScreen extends StatefulWidget {
   const RoomCrudScreen({super.key});

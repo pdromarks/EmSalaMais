@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Necessário para listEquals
 import '../../theme/theme.dart';
 
 class DropdownValueModel {
@@ -82,7 +83,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
   @override
   void initState() {
     super.initState();
-    _filteredItems = widget.items;
+    _filteredItems = List<DropdownValueModel>.from(widget.items);
   }
 
   @override
@@ -99,6 +100,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
               item.label.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
+    _overlayEntry?.markNeedsBuild();
   }
 
   @override
@@ -109,8 +111,15 @@ class _CustomDropdownState extends State<CustomDropdown> {
         _removeOverlay();
       }
     }
-    if (widget.items != oldWidget.items) {
-      _filteredItems = widget.items;
+    if (!listEquals(widget.items, oldWidget.items)) {
+      if (_searchController.text.isNotEmpty) {
+         _filterItems(_searchController.text);
+      } else {
+        setState(() {
+          _filteredItems = List<DropdownValueModel>.from(widget.items);
+        });
+      }
+      _overlayEntry?.markNeedsBuild();
     }
   }
 
@@ -118,8 +127,8 @@ class _CustomDropdownState extends State<CustomDropdown> {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _isOpen = false;
-    _searchController.clear();
-    _filteredItems = widget.items;
+    // _searchController.clear(); // Manter o texto pode ser útil
+    // _filteredItems = widget.items;
     DropdownManager.closeDropdown();
   }
 
@@ -128,6 +137,13 @@ class _CustomDropdownState extends State<CustomDropdown> {
       _removeOverlay();
     } else {
       widget.onOpen?.call();
+      if (_searchController.text.isNotEmpty) {
+        _filterItems(_searchController.text);
+      } else {
+        setState(() {
+            _filteredItems = List<DropdownValueModel>.from(widget.items);
+        });
+      }
       _addOverlay();
     }
   }
@@ -172,7 +188,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                     child: Text(
                       widget.selectedValue?.label ?? widget.label,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: widget.fontSize ?? 16,
                         color: widget.selectedValue != null
                             ? Colors.black87
                             : AppColors.verdeUNICV.withOpacity(0.7),
@@ -183,7 +199,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   Icon(
                     _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                     color: AppColors.verdeUNICV,
-                    size: 24,
+                    size: widget.iconSize ?? 24,
                   ),
                 ],
               ),
@@ -200,132 +216,146 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
     // Calcula a posição do overlay
     final isOffScreen = position.dy + size.height + 250 > screenHeight;
-    final verticalOffset = isOffScreen ? -(250 + 5) : size.height + 5;
+    //final verticalOffset = isOffScreen ? -(250 + 5) : size.height + 5;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        left: position.dx,
-        top: position.dy + (isOffScreen ? -5.0 : 0.0),
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          offset: Offset(0, verticalOffset.toDouble()),
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(20),
+      builder: (context) => Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _removeOverlay,
             child: Container(
-              constraints: const BoxConstraints(maxHeight: 250),
-              decoration: BoxDecoration(
-                color: Colors.white,
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.transparent,
+            ),
+          ),
+          Positioned(
+            left: position.dx,
+            top: position.dy + (isOffScreen ? -5.0 : 0.0) + (isOffScreen ? 0 : size.height), // Ajuste para posicionar corretamente
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              offset: Offset(0, isOffScreen ? -(250 + 5 - size.height) : 5 ), // Ajuste no offset
+              showWhenUnlinked: false,
+              child: Material(
+                elevation: 4,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.verdeUNICV,
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.enableSearch)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: TextField(
-                        controller: _searchController,
-                        autofocus: true,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: 'Pesquisar...',
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 20,
-                            color: AppColors.verdeUNICV,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.verdeUNICV,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.verdeUNICV,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.verdeUNICV,
-                              width: 2,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        onChanged: _filterItems,
-                      ),
-                    ),
-                  Flexible(
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: _filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = _filteredItems[index];
-                        final isSelected = widget.selectedValue?.value == item.value;
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              widget.onChanged(item);
-                              _removeOverlay();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.verdeUNICV.withOpacity(0.1)
-                                    : null,
-                              ),
-                              child: Row(
-                                children: [
-                                  if (isSelected)
-                                    const Padding(
-                                      padding: EdgeInsets.only(right: 8),
-                                      child: Icon(
-                                        Icons.check,
-                                        color: AppColors.verdeUNICV,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  Expanded(
-                                    child: Text(
-                                      item.label,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.verdeUNICV,
+                      width: 2,
                     ),
                   ),
-                ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.enableSearch)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: TextField(
+                            controller: _searchController,
+                            autofocus: false, // Melhor não focar automaticamente
+                            style: const TextStyle(fontSize: 14),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'Pesquisar...',
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 20,
+                                color: AppColors.verdeUNICV,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: AppColors.verdeUNICV,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: _filterItems,
+                          ),
+                        ),
+                      Flexible(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: _filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _filteredItems[index];
+                            final isSelected = widget.selectedValue?.value == item.value;
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  widget.onChanged(item);
+                                  _removeOverlay();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.verdeUNICV.withOpacity(0.1)
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      if (isSelected)
+                                        const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: Icon(
+                                            Icons.check,
+                                            color: AppColors.verdeUNICV,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      Expanded(
+                                        child: Text(
+                                          item.label,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

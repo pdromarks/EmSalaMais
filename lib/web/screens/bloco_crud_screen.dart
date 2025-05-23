@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../components/screens/custom_crud_screen.dart';
-import '../components/screens/custom_form_dialog.dart';
+import '../../components/screens/custom_crud_screen.dart';
+import '../../components/screens/custom_form_dialog.dart';
 
 class BlocoCrudScreen extends StatefulWidget {
   const BlocoCrudScreen({super.key});

@@ -1,252 +1,339 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Necessário para listEquals
 import '../../theme/theme.dart';
 
 class CustomMultiSelectDropdown extends StatefulWidget {
-  final String label;
   final List<String> options;
   final List<String> selectedValues;
-  final Function(List<String>) onChanged;
+  final ValueChanged<List<String>> onChanged;
+  final String label;
+  final double? width;
+  final double? height;
   final double? fontSize;
+  final double? iconSize;
 
   const CustomMultiSelectDropdown({
     super.key,
-    required this.label,
     required this.options,
     required this.selectedValues,
     required this.onChanged,
+    required this.label,
+    this.width,
+    this.height,
     this.fontSize,
+    this.iconSize,
   });
 
   @override
-  State<CustomMultiSelectDropdown> createState() =>
-      _CustomMultiSelectDropdownState();
+  State<CustomMultiSelectDropdown> createState() => _CustomMultiSelectDropdownState();
 }
 
 class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+  final _dropdownKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  bool _isExpanded = false;
   List<String> _filteredOptions = [];
+  List<String> _localSelectedValues = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredOptions = widget.options;
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) {
+    _filteredOptions = List<String>.from(widget.options);
+    _localSelectedValues = List<String>.from(widget.selectedValues);
+  }
+
+  @override
+  void didUpdateWidget(CustomMultiSelectDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    bool needsOverlayRebuild = false;
+
+    if (!listEquals(widget.options, oldWidget.options)) {
+      if (_searchController.text.isNotEmpty) {
+        // _filterOptions chamará setState e markNeedsBuild
+        _filterOptions(_searchController.text); 
+      } else {
         setState(() {
-          _isExpanded = false;
+          _filteredOptions = List<String>.from(widget.options);
         });
+        needsOverlayRebuild = true;
       }
-    });
+    }
+
+    // Verifica se widget.selectedValues foi alterado externamente
+    if (!listEquals(widget.selectedValues, oldWidget.selectedValues) &&
+        !listEquals(widget.selectedValues, _localSelectedValues)) {
+      setState(() {
+        _localSelectedValues = List<String>.from(widget.selectedValues);
+      });
+      needsOverlayRebuild = true;
+    }
+
+    if (needsOverlayRebuild) {
+      _overlayEntry?.markNeedsBuild();
+    }
   }
 
   @override
   void dispose() {
+    _removeOverlay();
     _searchController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
   void _filterOptions(String query) {
     setState(() {
-      _filteredOptions =
-          widget.options
-              .where(
-                (option) => option.toLowerCase().contains(query.toLowerCase()),
-              )
-              .toList();
+      _filteredOptions = widget.options
+          .where((option) =>
+              option.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _isOpen = false;
+    // Não limpe o searchController aqui se quiser manter o texto da pesquisa
+    // _searchController.clear(); 
+    // _filteredOptions = widget.options; // Resetar aqui pode ser indesejado se o overlay for reaberto logo
+  }
+
+  void _toggleOverlay() {
+    if (_isOpen) {
+      _removeOverlay();
+    } else {
+      // Garante que _filteredOptions esteja atualizado com base na pesquisa atual ou nas opções completas
+      if (_searchController.text.isNotEmpty) {
+        _filterOptions(_searchController.text);
+      } else {
+         // Precisa de setState aqui se _filteredOptions pudesse estar desatualizado
+        setState(() {
+            _filteredOptions = List<String>.from(widget.options);
+        });
+      }
+      _addOverlay();
+    }
+  }
+
+  void _addOverlay() {
+    final overlay = Overlay.of(context);
+    final renderBox = _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    _overlayEntry = _createOverlayEntry(position, size);
+    overlay.insert(_overlayEntry!);
+    _isOpen = true;
+  }
+
+  void _toggleOption(String option) {
+    setState(() {
+      if (_localSelectedValues.contains(option)) {
+        _localSelectedValues.remove(option);
+      } else {
+        _localSelectedValues.add(option);
+      }
+      widget.onChanged(List<String>.from(_localSelectedValues)); // Envia uma cópia
+    });
+    _overlayEntry?.markNeedsBuild(); // Essencial para atualizar a UI do overlay
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
-    final screenHeight = screenSize.height;
-    final defaultFontSize = screenWidth * 0.04;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.label,
-          style: TextStyle(
-            fontSize: widget.fontSize ?? defaultFontSize * 0.9,
-            fontWeight: FontWeight.bold,
-            color: AppColors.verdeUNICV,
-          ),
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        key: _dropdownKey,
+        width: widget.width,
+        height: widget.height ?? 48,
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.verdeUNICV, width: 2),
+          borderRadius: BorderRadius.circular(20),
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.verdeUNICV, width: 2),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _toggleOverlay,
             borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            children: [
-              // Campo de busca
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _focusNode,
-                          style: TextStyle(
-                            fontSize: widget.fontSize ?? defaultFontSize * 0.9,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Pesquisar...',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                            ),
-                            hintStyle: TextStyle(
-                              fontSize: widget.fontSize ?? defaultFontSize * 0.9,
-                              color: AppColors.verdeUNICV.withOpacity(0.7),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            _filterOptions(value);
-                            if (!_isExpanded) {
-                              setState(() {
-                                _isExpanded = true;
-                              });
-                            }
-                          },
-                          onTap: () {
-                            setState(() {
-                              _isExpanded = true;
-                            });
-                          },
-                        ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _localSelectedValues.isEmpty
+                          ? widget.label
+                          : _localSelectedValues.join(', '),
+                      style: TextStyle(
+                        fontSize: widget.fontSize ?? 16,
+                        color: _localSelectedValues.isNotEmpty
+                            ? Colors.black87
+                            : AppColors.verdeUNICV.withOpacity(0.7),
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: IconButton(
-                        icon: Icon(
-                          _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                          color: AppColors.verdeUNICV,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isExpanded = !_isExpanded;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: AppColors.verdeUNICV,
+                    size: widget.iconSize ?? 24,
+                  ),
+                ],
               ),
-              // Lista de itens selecionados
-              if (widget.selectedValues.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: widget.selectedValues.map((value) {
-                      return Chip(
-                        backgroundColor: AppColors.verdeUNICV.withOpacity(0.1),
-                        label: Text(
-                          value,
-                          style: TextStyle(
-                            fontSize: (widget.fontSize ?? defaultFontSize) * 0.8,
-                            color: AppColors.verdeUNICV,
-                          ),
-                        ),
-                        deleteIcon: const Icon(Icons.close, size: 18),
-                        onDeleted: () {
-                          final newValues = List<String>.from(widget.selectedValues)
-                            ..remove(value);
-                          widget.onChanged(newValues);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-              // Lista de opções
-              if (_isExpanded)
-                Container(
-                  constraints: BoxConstraints(maxHeight: screenHeight * 0.3),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color: AppColors.verdeUNICV.withOpacity(0.2),
-                      ),
-                    ),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _filteredOptions.length,
-                    itemBuilder: (context, index) {
-                      final option = _filteredOptions[index];
-                      final isSelected = widget.selectedValues.contains(option);
-                      return Material(
-                        color: isSelected
-                            ? AppColors.verdeUNICV.withOpacity(0.1)
-                            : Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            final newValues = List<String>.from(widget.selectedValues);
-                            if (isSelected) {
-                              newValues.remove(option);
-                            } else {
-                              newValues.add(option);
-                            }
-                            widget.onChanged(newValues);
-                          },
-                          child: Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 24,
-                                  child: Checkbox(
-                                    value: isSelected,
-                                    onChanged: (bool? value) {
-                                      final newValues =
-                                          List<String>.from(widget.selectedValues);
-                                      if (value == true) {
-                                        newValues.add(option);
-                                      } else {
-                                        newValues.remove(option);
-                                      }
-                                      widget.onChanged(newValues);
-                                    },
-                                    activeColor: AppColors.verdeUNICV,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    option,
-                                    style: TextStyle(
-                                      fontSize: widget.fontSize ?? defaultFontSize * 0.9,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
-}
+
+  OverlayEntry _createOverlayEntry(Offset position, Size size) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
+
+    final isOffScreen = position.dy + size.height + 250 > screenHeight;
+    final verticalOffset = isOffScreen ? -(250 + 5) : size.height + 5;
+
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _removeOverlay,
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.transparent,
+            ),
+          ),
+          Positioned(
+            left: position.dx,
+            top: position.dy + (isOffScreen ? -5.0 : 0.0) + (isOffScreen ? 0 : size.height), // Ajuste para posicionar corretamente
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              offset: Offset(0, isOffScreen ? -(250 + 5 - size.height) : 5 ), // Ajuste no offset
+              showWhenUnlinked: false,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.verdeUNICV,
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: false, // Geralmente melhor não focar automaticamente
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'Pesquisar...',
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              size: 20,
+                              color: AppColors.verdeUNICV,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: AppColors.verdeUNICV,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: AppColors.verdeUNICV,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: AppColors.verdeUNICV,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          onChanged: _filterOptions,
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: _filteredOptions.length,
+                          itemBuilder: (context, index) {
+                            final option = _filteredOptions[index];
+                            final isSelected = _localSelectedValues.contains(option);
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => _toggleOption(option),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.verdeUNICV.withOpacity(0.1)
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: Icon(
+                                          isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                                          color: AppColors.verdeUNICV,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          option,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+} 

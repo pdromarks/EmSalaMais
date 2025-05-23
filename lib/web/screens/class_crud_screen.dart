@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../components/screens/custom_crud_screen.dart';
-import '../components/screens/custom_form_dialog.dart';
-import '../components/widgets/custom_radio_button.dart';
-import '../theme/theme.dart';
+import '../../components/screens/custom_crud_screen.dart';
+import '../../components/screens/custom_form_dialog.dart';
+import '../../components/widgets/custom_radio_button.dart';
+import '../../theme/theme.dart';
 
 class ClassCrudScreen extends StatefulWidget {
   const ClassCrudScreen({super.key});

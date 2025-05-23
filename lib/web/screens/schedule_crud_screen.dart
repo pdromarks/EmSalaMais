@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../components/schedule_card.dart';
-import '../components/weekday_column.dart';
-import '../theme/theme.dart';
-import '../components/screens/custom_form_dialog.dart';
+import '../../components/widgets/schedule_card.dart';
+import '../../components/weekday_column.dart';
+import '../../theme/theme.dart';
+import '../../components/screens/custom_form_dialog.dart';
 
 class ScheduleCrudScreen extends StatefulWidget {
   const ScheduleCrudScreen({Key? key}) : super(key: key);

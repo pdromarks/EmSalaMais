@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
-import 'schedule_card.dart';
+import 'widgets/schedule_card.dart';
 
 class WeekdayColumn extends StatelessWidget {
   final String weekday;
