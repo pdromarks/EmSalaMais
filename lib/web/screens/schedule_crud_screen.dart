@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../components/widgets/schedule_card.dart';
-import '../../components/weekday_column.dart';
+import '../../components/widgets/weekday_column.dart';
 import '../../theme/theme.dart';
 import '../../components/screens/custom_form_dialog.dart';
 
@@ -267,30 +267,34 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: Row(
-                children: weekdays.map((weekday) {
-                  final weekdaySchedules = schedules
-                      .where((schedule) => schedule['weekday'] == weekday)
-                      .map((schedule) => ScheduleCard(
-                            course: schedule['course'],
-                            semester: schedule['semester'],
-                            period: schedule['period'],
-                            className: schedule['className'],
-                            teacher: schedule['teacher'],
-                            subject: schedule['subject'],
-                            time: schedule['time'],
-                            onEdit: () => _showFormDialog(schedule),
-                            onDelete: () => _handleDelete(schedule),
-                          ))
-                      .toList();
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: weekdays.map((weekday) {
+                    final weekdaySchedules = schedules
+                        .where((schedule) => schedule['weekday'] == weekday)
+                        .map((schedule) => ScheduleCard(
+                              course: schedule['course'],
+                              semester: schedule['semester'],
+                              period: schedule['period'],
+                              className: schedule['className'],
+                              teacher: schedule['teacher'],
+                              subject: schedule['subject'],
+                              time: schedule['time'],
+                              onEdit: () => _showFormDialog(schedule),
+                              onDelete: () => _handleDelete(schedule),
+                            ))
+                        .toList();
 
-                  return Expanded(
-                    child: WeekdayColumn(
-                      weekday: weekday,
-                      scheduleCards: weekdaySchedules,
-                    ),
-                  );
-                }).toList(),
+                    return SizedBox(
+                      width: 300,
+                      child: WeekdayColumn(
+                        weekday: weekday,
+                        scheduleCards: weekdaySchedules,
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ],
