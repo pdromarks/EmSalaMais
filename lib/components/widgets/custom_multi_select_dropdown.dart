@@ -151,9 +151,8 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
       child: Container(
         key: _dropdownKey,
         width: widget.width,
-        height: widget.height ?? 48,
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.verdeUNICV, width: 2),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Material(
@@ -161,28 +160,57 @@ class _CustomMultiSelectDropdownState extends State<CustomMultiSelectDropdown> {
           child: InkWell(
             onTap: _toggleOverlay,
             borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: widget.label,
+                labelStyle: TextStyle(
+                  color: AppColors.verdeUNICV,
+                  fontSize: widget.fontSize ?? 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.only(
+                  left: 16, 
+                  right: 0,
+                  top: 8,
+                  bottom: 8,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                ),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       _localSelectedValues.isEmpty
-                          ? widget.label
+                          ? ""
                           : _localSelectedValues.join(', '),
                       style: TextStyle(
                         fontSize: widget.fontSize ?? 16,
                         color: _localSelectedValues.isNotEmpty
                             ? Colors.black87
-                            : AppColors.verdeUNICV.withOpacity(0.7),
+                            : Colors.transparent,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(
-                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    color: AppColors.verdeUNICV,
-                    size: widget.iconSize ?? 24,
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Icon(
+                      _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      color: AppColors.verdeUNICV,
+                      size: widget.iconSize ?? 24,
+                    ),
                   ),
                 ],
               ),

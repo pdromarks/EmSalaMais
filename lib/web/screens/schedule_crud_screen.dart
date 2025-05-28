@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../components/widgets/schedule_card.dart';
-import '../../components/widgets/weekday_column.dart';
 import '../../theme/theme.dart';
 import '../../components/screens/custom_form_dialog.dart';
 
@@ -12,6 +11,10 @@ class ScheduleCrudScreen extends StatefulWidget {
 }
 
 class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
+  final ScrollController _headerScrollController = ScrollController();
+  final ScrollController _contentScrollController = ScrollController();
+  bool _isSyncing = false; // Flag para evitar loops de sincronização
+
   final List<String> weekdays = [
     'Segunda',
     'Terça',
@@ -73,6 +76,44 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     }
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _headerScrollController.addListener(_syncContentScroll);
+    _contentScrollController.addListener(_syncHeaderScroll);
+  }
+
+  @override
+  void dispose() {
+    _headerScrollController.removeListener(_syncContentScroll);
+    _contentScrollController.removeListener(_syncHeaderScroll);
+    _headerScrollController.dispose();
+    _contentScrollController.dispose();
+    super.dispose();
+  }
+
+  void _syncHeaderScroll() {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    if (_headerScrollController.hasClients && _contentScrollController.hasClients) {
+      if (_headerScrollController.offset != _contentScrollController.offset) {
+        _contentScrollController.jumpTo(_headerScrollController.offset);
+      }
+    }
+    Future.delayed(const Duration(milliseconds: 50), () => _isSyncing = false); // Pequeno delay para evitar chamadas rápidas
+  }
+
+  void _syncContentScroll() {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    if (_contentScrollController.hasClients && _headerScrollController.hasClients) {
+      if (_contentScrollController.offset != _headerScrollController.offset) {
+        _headerScrollController.jumpTo(_contentScrollController.offset);
+      }
+    }
+    Future.delayed(const Duration(milliseconds: 50), () => _isSyncing = false);
+  }
+
   void _handleDelete(Map<String, dynamic> schedule) {
     showDialog(
       context: context,
@@ -119,7 +160,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => CustomFormDialog(
+        builder: (context, setStateDialog) => CustomFormDialog(
           title: initialData != null ? 'Editar Horário' : 'Novo Horário',
           fields: [
             CustomFormField(
@@ -131,7 +172,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 child: Text(c['displayName'] ?? ''),
               )).toList(),
               onChanged: (value) {
-                setState(() {
+                setStateDialog(() {
                   selectedClass = value;
                   selectedClassData = mockClasses.firstWhere(
                     (c) => c['className'] == value,
@@ -148,7 +189,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 DropdownMenuItem(value: '1', child: Text('Professor 1')),
                 DropdownMenuItem(value: '2', child: Text('Professor 2')),
               ],
-              onChanged: (value) => setState(() => selectedTeacher = value),
+              onChanged: (value) => setStateDialog(() => selectedTeacher = value),
             ),
             CustomFormField(
               label: 'Disciplina',
@@ -158,7 +199,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 DropdownMenuItem(value: '1', child: Text('Disciplina 1')),
                 DropdownMenuItem(value: '2', child: Text('Disciplina 2')),
               ],
-              onChanged: (value) => setState(() => selectedSubject = value),
+              onChanged: (value) => setStateDialog(() => selectedSubject = value),
             ),
             CustomFormField(
               label: 'Dia da Semana',
@@ -168,7 +209,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 value: day,
                 child: Text(day),
               )).toList(),
-              onChanged: (value) => setState(() => selectedWeekday = value),
+              onChanged: (value) => setStateDialog(() => selectedWeekday = value),
             ),
             CustomFormField(
               label: 'Horário',
@@ -178,7 +219,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 value: time,
                 child: Text(time),
               )).toList(),
-              onChanged: (value) => setState(() => selectedTime = value),
+              onChanged: (value) => setStateDialog(() => selectedTime = value),
             ),
           ],
           onSave: (data) {
@@ -208,7 +249,6 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               'time': selectedTime ?? '',
               'weekday': selectedWeekday ?? '',
             };
-
             Navigator.pop(context, scheduleData);
           },
           onCancel: () => Navigator.pop(context),
@@ -230,6 +270,113 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     }
   }
 
+  Widget _buildFixedHeadersRow(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    final double width = screenSize.width;
+    final double fontSize = (width * 0.012).clamp(14.0, 20.0); // Consistente com WeekdayColumn original
+
+    return Row(
+      children: weekdays.map((weekday) {
+        final schedulesForDay = schedules.where((s) => s['weekday'] == weekday).toList();
+        return Container(
+          width: 300, // Largura fixa para cada coluna de cabeçalho
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), // Margem para simular o card
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.verdeUNICV,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), // Apenas cantos superiores arredondados
+             boxShadow: [ // Sombra sutil para o cabeçalho
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                weekday,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: fontSize * 1.2,
+                ),
+              ),
+              Text(
+                '${schedulesForDay.length} horário(s)',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: fontSize * 0.9,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildScrollableContentRow(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    final double width = screenSize.width;
+    final double fontSize = (width * 0.012).clamp(14.0, 20.0); // Consistente
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start, // Alinha colunas pelo topo
+      children: weekdays.map((weekday) {
+        final weekdaySchedulesCards = schedules
+            .where((schedule) => schedule['weekday'] == weekday)
+            .map((schedule) => ScheduleCard(
+                  course: schedule['course'],
+                  semester: schedule['semester'],
+                  period: schedule['period'],
+                  className: schedule['className'],
+                  teacher: schedule['teacher'],
+                  subject: schedule['subject'],
+                  time: schedule['time'],
+                  onEdit: () => _showFormDialog(schedule),
+                  onDelete: () => _handleDelete(schedule),
+                ))
+            .toList();
+
+        return Container(
+          width: 300, // Largura fixa para cada coluna de conteúdo
+          margin: const EdgeInsets.symmetric(horizontal: 4), // Apenas margem horizontal
+          decoration: BoxDecoration(
+             color: Colors.white, // Fundo branco para a área dos cards
+             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)), // Cantos inferiores arredondados
+             boxShadow: [ // Sombra correspondente ao cabeçalho
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1), // Sombra para baixo
+              ),
+            ],
+          ),
+          child: weekdaySchedulesCards.isEmpty
+              ? Container( // Container para centralizar e dar padding à mensagem
+                  padding: const EdgeInsets.all(16.0),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Nenhum horário cadastrado',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: fontSize,
+                    ),
+                  ),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min, // Para que a coluna não tente ser infinita
+                  children: weekdaySchedulesCards,
+                ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
@@ -243,62 +390,46 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
         backgroundColor: AppColors.verdeUNICV,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(
-          width * 0.01,
-          screenSize.height * 0.02,
-          width * 0.01,
-          0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.01),
-              child: Text(
-                'Horários',
-                style: TextStyle(
-                  color: AppColors.verdeUNICV,
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'Inter',
-                ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              width * 0.01,
+              screenSize.height * 0.02,
+              width * 0.01,
+              screenSize.height * 0.01, // Padding menor abaixo do título
+            ),
+            child: Text(
+              'Horários',
+              style: TextStyle(
+                color: AppColors.verdeUNICV,
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'Inter',
               ),
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: SingleChildScrollView(
+          ),
+          // Cabeçalhos Fixos (horizontalmente roláveis)
+          SingleChildScrollView(
+            controller: _headerScrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(), // Para melhor sensação com sincronização
+            child: _buildFixedHeadersRow(context),
+          ),
+          // Conteúdo Rolável (Vertical e Horizontal Sincronizado)
+          Expanded(
+            child: SingleChildScrollView( // Rolagem Vertical Principal
+              physics: const ClampingScrollPhysics(),
+              child: SingleChildScrollView( // Rolagem Horizontal do Conteúdo
+                controller: _contentScrollController,
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: weekdays.map((weekday) {
-                    final weekdaySchedules = schedules
-                        .where((schedule) => schedule['weekday'] == weekday)
-                        .map((schedule) => ScheduleCard(
-                              course: schedule['course'],
-                              semester: schedule['semester'],
-                              period: schedule['period'],
-                              className: schedule['className'],
-                              teacher: schedule['teacher'],
-                              subject: schedule['subject'],
-                              time: schedule['time'],
-                              onEdit: () => _showFormDialog(schedule),
-                              onDelete: () => _handleDelete(schedule),
-                            ))
-                        .toList();
-
-                    return SizedBox(
-                      width: 300,
-                      child: WeekdayColumn(
-                        weekday: weekday,
-                        scheduleCards: weekdaySchedules,
-                      ),
-                    );
-                  }).toList(),
-                ),
+                physics: const ClampingScrollPhysics(),
+                child: _buildScrollableContentRow(context),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

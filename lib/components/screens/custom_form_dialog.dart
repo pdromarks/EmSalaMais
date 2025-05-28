@@ -125,53 +125,39 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                   Widget fieldWidget;
 
                   if (field.isDropdown) {
-                    fieldWidget = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          field.label,
-                          style: TextStyle(
-                            fontSize: fontSize * 0.9,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.verdeUNICV,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        CustomDropdown(
-                          items: field.items?.map((item) => DropdownValueModel(
-                            value: item.value ?? '',
-                            label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
-                          )).toList() ?? [],
-                          selectedValue: field.value != null
-                              ? DropdownValueModel(
-                                  value: field.value!,
-                                  label: field.items
-                                          ?.firstWhere(
-                                            (item) => item.value == field.value,
-                                            orElse: () => const DropdownMenuItem(
-                                              value: '',
-                                              child: Text(''),
-                                            ),
-                                          )
-                                          .child is Text
-                                      ? (field.items!.firstWhere(
-                                          (item) => item.value == field.value,
-                                          orElse: () => const DropdownMenuItem(
-                                            value: '',
-                                            child: Text(''),
-                                          ),
-                                        ).child as Text)
-                                          .data ??
-                                          ''
-                                      : '',
-                                )
-                              : null,
-                          onChanged: (value) => field.onChanged?.call(value?.value),
-                          label: field.label,
-                          dropdownId: field.label,
-                          enableSearch: true,
-                        ),
-                      ],
+                    fieldWidget = CustomDropdown(
+                      items: field.items?.map((item) => DropdownValueModel(
+                        value: item.value ?? '',
+                        label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
+                      )).toList() ?? [],
+                      selectedValue: field.value != null
+                          ? DropdownValueModel(
+                              value: field.value!,
+                              label: field.items
+                                      ?.firstWhere(
+                                        (item) => item.value == field.value,
+                                        orElse: () => const DropdownMenuItem(
+                                          value: '',
+                                          child: Text(''),
+                                        ),
+                                      )
+                                      .child is Text
+                                  ? (field.items!.firstWhere(
+                                      (item) => item.value == field.value,
+                                      orElse: () => const DropdownMenuItem(
+                                        value: '',
+                                        child: Text(''),
+                                      ),
+                                    ).child as Text)
+                                      .data ??
+                                      ''
+                                  : '',
+                            )
+                          : null,
+                      onChanged: (value) => field.onChanged?.call(value?.value),
+                      label: field.label,
+                      dropdownId: field.label,
+                      enableSearch: true,
                     );
                   } else if (field.isCounter) {
                     fieldWidget = CustomCounter(

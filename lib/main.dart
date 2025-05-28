@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'web/screens/home_screen.dart';
 import 'theme/theme.dart';
 
@@ -12,7 +13,6 @@ class EmSalaMaisApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppColors.verdeUNICV,
@@ -24,6 +24,16 @@ class EmSalaMaisApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xfff1f1f1),
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('pt', 'BR'),
       home: const HomeScreen(),
     );
   }

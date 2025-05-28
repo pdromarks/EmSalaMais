@@ -61,24 +61,22 @@ class WeekdayColumn extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(
-            child: scheduleCards.isEmpty
-                ? Center(
-                    child: Text(
-                      'Nenhum horário cadastrado',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: fontSize,
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: scheduleCards,
+          scheduleCards.isEmpty
+              ? Center(
+                  child: Text(
+                    'Nenhum horário cadastrado',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: fontSize,
                     ),
                   ),
-          ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: scheduleCards,
+                  ),
+                ),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:em_sala_mais/web/screens/room_allocation_crud_screen.dart';
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
 import 'bloco_crud_screen.dart';
@@ -28,11 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<MenuItem> _menuItems = [
     MenuItem(
-      title: 'Dashboard',
-      icon: Icons.dashboard,
-      screen: const Center(child: Text('Dashboard')), // Placeholder
-    ),
-    MenuItem(
       title: 'Blocos',
       icon: Icons.apartment,
       screen: const BlocoCrudScreen(),
@@ -43,19 +39,19 @@ class _HomeScreenState extends State<HomeScreen> {
       screen: const RoomCrudScreen(),
     ),
     MenuItem(
-      title: 'Professores',
-      icon: Icons.person,
-      screen: const TeacherCrudScreen(),
+      title: 'Cursos',
+      icon: Icons.school,
+      screen: const CourseCrudScreen(),
     ),
     MenuItem(
       title: 'Disciplinas',
       icon: Icons.book,
-      screen: const SubjectrCrudScreen(),
+      screen: const SubjectCrudScreen(),
     ),
     MenuItem(
-      title: 'Cursos',
-      icon: Icons.school,
-      screen: const CourseCrudScreen(),
+      title: 'Professores',
+      icon: Icons.person,
+      screen: const TeacherCrudScreen(),
     ),
     MenuItem(
       title: 'Turmas',
@@ -66,6 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Horários',
       icon: Icons.schedule,
       screen: const ScheduleCrudScreen(),
+    ),
+    MenuItem(
+      title: 'Ensalamento',
+      icon: Icons.schedule,
+      screen: const RoomAllocationCrudScreen(),
     ),
   ];
 

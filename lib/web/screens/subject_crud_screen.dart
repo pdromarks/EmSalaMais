@@ -3,14 +3,14 @@ import '../../components/screens/custom_crud_screen.dart';
 import '../../components/screens/custom_form_dialog.dart';
 import '../../theme/theme.dart';
 
-class SubjectrCrudScreen extends StatefulWidget {
-  const SubjectrCrudScreen({super.key});
+class SubjectCrudScreen extends StatefulWidget {
+  const SubjectCrudScreen({super.key});
 
   @override
-  State<SubjectrCrudScreen> createState() => _SubjectrCrudScreenState();
+  State<SubjectCrudScreen> createState() => _SubjectCrudScreenState();
 }
 
-class _SubjectrCrudScreenState extends State<SubjectrCrudScreen> {
+class _SubjectCrudScreenState extends State<SubjectCrudScreen> {
   // Lista de disciplinas (simulando um banco de dados)
   final List<Map<String, dynamic>> _disciplinas = [
     {'id': '1', 'nome': 'Metodologias Ágeis'},

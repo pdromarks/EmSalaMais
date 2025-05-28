@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/theme.dart';
 
 class CustomTextField extends StatefulWidget {
   final String label;
@@ -48,7 +49,6 @@ class _CustomTextFieldState extends State<CustomTextField> {
     final isDesktop = screenWidth > 1024;
 
     // Define valores padrão baseados no tamanho da tela
-    final defaultHeight = screenHeight * 0.08;
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = isDesktop ? 22.0 : defaultFontSize * 1.2;
 
@@ -63,7 +63,6 @@ class _CustomTextFieldState extends State<CustomTextField> {
             : null;
 
     return Container(
-      height: widget.height ?? defaultHeight,
       width: effectiveWidth,
       constraints:
           widget.maxWidth != null
@@ -111,13 +110,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
-              color: widget.borderColor ?? Colors.teal,
+              color: widget.borderColor ?? AppColors.verdeUNICV,
               width: 2.0,
             ),
           ),
           contentPadding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.03,
-            vertical: screenHeight * 0.01,
+            vertical: 12,
           ),
           prefixIcon:
               widget.prefixIcon != null
