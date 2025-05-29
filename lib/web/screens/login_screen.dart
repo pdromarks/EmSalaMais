@@ -1,4 +1,4 @@
-import 'package:em_sala_mais/backend/user/user.service.dart';
+import 'package:em_sala_mais/backend/services/user.service.dart';
 import 'package:em_sala_mais/web/screens/404.dart';
 import 'package:flutter/material.dart';
 import '../../components/widgets/custom_tf.dart';

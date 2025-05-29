@@ -1,4 +1,5 @@
 import 'package:em_sala_mais/backend/model/bloco.dart';
+import 'package:em_sala_mais/backend/model/bloco_dto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BlocoService {
@@ -15,22 +16,18 @@ class BlocoService {
     return Bloco.fromJson(response.first);
   }
 
-  Future<Bloco> createBloco(Bloco bloco) async {
+  Future<Bloco> createBloco(BlocoDTO bloco) async {
     try {
       final List<Map<String, dynamic>> response = await supabase.from('bloco').insert(bloco.toJson()).select();
       
-      if (response.isNotEmpty) {
-        return Bloco.fromJson(response.first);
-      } else {
-        throw Exception("Bloco criado, mas nenhum dado retornado do Supabase.");
-      }
+      return Bloco.fromJson(response.first);
     } catch (e) {
       throw Exception("Erro ao criar o bloco: $e");
     }
   }
   
   Future<Bloco> updateBloco(Bloco bloco) async {
-    final response = await supabase.from('bloco').update(bloco.toJson()).eq('id', bloco.id);
+    final response = await supabase.from('bloco').update(bloco.toJson()).eq('id', bloco.id as int).select();
     return Bloco.fromJson(response.first);
   }
 
