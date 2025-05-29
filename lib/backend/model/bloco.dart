@@ -5,13 +5,31 @@ class Bloco {
     final String name;
     final String? description;
     final Campus campus;
-    final DateTime createdAt;
-    final DateTime updatedAt;
+    final DateTime? createdAt;
+    final DateTime? updatedAt;
 
     Bloco({required this.id, 
           required this.name,
           this.description,
           this.campus = Campus.maringa,
-          required this.updatedAt,
-          required this.createdAt});
+          this.updatedAt,
+          this.createdAt});
+
+    factory Bloco.fromJson(Map<String, dynamic> json) {
+      return Bloco(
+        id: json['id'],
+        name: json['nome'],
+        description: json['descricao'],
+        campus: Campus.values.byName(json['campus'])
+      );
+    }
+
+    Map<String, dynamic> toJson() {
+      return {
+        'id': id,
+        'nome': name,
+        'descricao': description,
+        'campus': campus.name
+      };
+    }
 }
