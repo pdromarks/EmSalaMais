@@ -72,9 +72,11 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
     }
   }
 
-  Widget _buildRoomInfo(double fontSize) {
+  // Informações do cabeçalho da sala (Nome, Bloco)
+  Widget _buildRoomHeaderInfo(double fontSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           widget.roomName,
@@ -95,36 +97,44 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  // Informações de características da sala (Carteiras, TV, Projetor)
+  Widget _buildRoomFeatureInfo(double fontSize) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Carteiras
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
+            Icon(Icons.table_restaurant_outlined, size: fontSize * 1.2, color: AppColors.verdeUNICV),
+            const SizedBox(width: 4),
+            Text('${widget.roomDesksCount}', style: TextStyle(fontSize: fontSize * 0.9, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        // TV e Projetor
+        Row(
+          children: [
+            Column(
               children: [
-                Icon(Icons.table_restaurant_outlined, size: fontSize * 1.2, color: AppColors.verdeUNICV),
-                const SizedBox(width: 4),
-                Text('${widget.roomDesksCount}', style: TextStyle(fontSize: fontSize * 0.9, fontWeight: FontWeight.bold)),
+                Icon(Icons.tv, size: fontSize * 1.2, color: widget.roomHasTV ? AppColors.verdeUNICV : Colors.grey),
+                Text('TV', style: TextStyle(fontSize: fontSize * 0.7, color: widget.roomHasTV ? AppColors.verdeUNICV : Colors.grey)),
               ],
             ),
-            Row(
+            const SizedBox(width: 16),
+            Column(
               children: [
-                Column(
-                  children: [
-                    Icon(Icons.tv, size: fontSize * 1.2, color: widget.roomHasTV ? AppColors.verdeUNICV : Colors.grey),
-                    Text('TV', style: TextStyle(fontSize: fontSize * 0.7, color: widget.roomHasTV ? AppColors.verdeUNICV : Colors.grey)),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  children: [
-                    Icon(Icons.videocam, size: fontSize * 1.2, color: widget.roomHasProjector ? AppColors.verdeUNICV : Colors.grey),
-                    Text('Projetor', style: TextStyle(fontSize: fontSize * 0.7, color: widget.roomHasProjector ? AppColors.verdeUNICV : Colors.grey)),
-                  ],
-                ),
+                Icon(Icons.videocam, size: fontSize * 1.2, color: widget.roomHasProjector ? AppColors.verdeUNICV : Colors.grey),
+                Text('Projetor', style: TextStyle(fontSize: fontSize * 0.7, color: widget.roomHasProjector ? AppColors.verdeUNICV : Colors.grey)),
               ],
             ),
           ],
         ),
+        // Placeholder para alinhar com os botões do CustomRoomCard, se necessário, ou deixar vazio
+        // Para este card, não teremos os botões de editar/deletar aqui.
+        const SizedBox(width: 0), 
       ],
     );
   }
@@ -138,17 +148,15 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Horário em destaque (similar ao ScheduleCard)
           Text(
             details.time,
             style: TextStyle(
-              fontSize: fontSize * 1.1, 
+              fontSize: fontSize * 1.1,
               fontWeight: FontWeight.bold,
               color: AppColors.verdeUNICV,
             ),
           ),
           const SizedBox(height: 8),
-          // Professor
           Row(
             children: [
               Icon(Icons.person, size: fontSize, color: Colors.grey[700]),
@@ -163,7 +171,6 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
             ],
           ),
           const SizedBox(height: 4),
-          // Disciplina
           Row(
             children: [
               Icon(Icons.book, size: fontSize, color: Colors.grey[700]),
@@ -188,49 +195,63 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
     final double width = screenSize.width;
     final bool isDesktop = width > 1024;
     final bool isTablet = width > 600 && width <= 1024;
-    final double fontSize = (width * (isDesktop ? 0.012 : isTablet ? 0.016 : 0.035)).clamp(12.0, 18.0); // Ajuste de clamp para card menor
+    final double fontSize = (width * (isDesktop ? 0.012 : isTablet ? 0.016 : 0.035)).clamp(12.0, 18.0);
 
     return Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // Para o card não expandir desnecessariamente
-          children: [
-            _buildRoomInfo(fontSize),
-            const SizedBox(height: 12),
-            // Dropdown para selecionar turma
-            CustomDropdown(
-              label: _selectedClass == null ? 'Alocar Turma' : 'Turma Alocada',
-              items: widget.availableClasses,
-              selectedValue: _selectedClass, 
-              onChanged: (newValue) {
-                setState(() {
-                  _selectedClass = newValue;
-                });
-                widget.onClassSelected(widget.roomId, newValue);
-              },
-              dropdownId: 'class_allocation_${widget.roomId}', // ID único
-              fontSize: fontSize * 0.95,
-              // Adicione onOpen e openDropdownId se for usar o DropdownManager global
-            ),
-            const SizedBox(height: 8),
-            // Detalhes da turma alocada (se houver)
-            if (widget.allocatedClassDetails != null)
-              _buildAllocatedClassDetails(fontSize, widget.allocatedClassDetails!)
-            else if (_selectedClass != null && widget.allocatedClassDetails == null)
-              Container( // Espaço reservado ou indicador de carregamento se a lógica for assíncrona
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                alignment: Alignment.center,
-                child: Text(
-                  'Selecione para carregar detalhes...', // Ou um CircularProgressIndicator
-                  style: TextStyle(color: Colors.grey, fontSize: fontSize * 0.85),
-                ),
+      child: SizedBox(
+        width: 340.0,
+        height: 330.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Topo: Nome da sala e bloco
+              _buildRoomHeaderInfo(fontSize),
+
+              // Meio: Espaço vazio para empurrar a base para baixo
+              const Spacer(),
+
+              // Base: Características, Dropdown de alocação e detalhes
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRoomFeatureInfo(fontSize),
+                  const SizedBox(height: 12),
+                  CustomDropdown(
+                    label: _selectedClass == null ? 'Alocar Turma' : 'Turma Alocada',
+                    items: widget.availableClasses,
+                    selectedValue: _selectedClass,
+                    onChanged: (newValue) {
+                      setState(() {
+                        _selectedClass = newValue;
+                      });
+                      widget.onClassSelected(widget.roomId, newValue);
+                    },
+                    dropdownId: 'class_allocation_${widget.roomId}',
+                    fontSize: fontSize * 0.95,
+                  ),
+                  const SizedBox(height: 8),
+                  if (widget.allocatedClassDetails != null)
+                    _buildAllocatedClassDetails(fontSize, widget.allocatedClassDetails!)
+                  else if (_selectedClass != null && widget.allocatedClassDetails == null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Selecione para carregar detalhes...',
+                        style: TextStyle(color: Colors.grey, fontSize: fontSize * 0.85),
+                      ),
+                    ),
+                ],
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -394,22 +394,22 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              width * 0.01,
-              screenSize.height * 0.02,
-              width * 0.01,
+        padding: EdgeInsets.fromLTRB(
+          width * 0.01,
+          screenSize.height * 0.02,
+          width * 0.01,
               screenSize.height * 0.01, // Padding menor abaixo do título
-            ),
-            child: Text(
-              'Horários',
-              style: TextStyle(
-                color: AppColors.verdeUNICV,
-                fontSize: titleFontSize,
-                fontWeight: FontWeight.w800,
-                fontFamily: 'Inter',
+        ),
+              child: Text(
+                'Horários',
+                style: TextStyle(
+                  color: AppColors.verdeUNICV,
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Inter',
+                ),
               ),
             ),
-          ),
           // Cabeçalhos Fixos (horizontalmente roláveis)
           SingleChildScrollView(
             controller: _headerScrollController,
@@ -418,7 +418,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
             child: _buildFixedHeadersRow(context),
           ),
           // Conteúdo Rolável (Vertical e Horizontal Sincronizado)
-          Expanded(
+            Expanded(
             child: SingleChildScrollView( // Rolagem Vertical Principal
               physics: const ClampingScrollPhysics(),
               child: SingleChildScrollView( // Rolagem Horizontal do Conteúdo
@@ -426,10 +426,10 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 scrollDirection: Axis.horizontal,
                 physics: const ClampingScrollPhysics(),
                 child: _buildScrollableContentRow(context),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
       ),
     );
   }
