@@ -1,5 +1,5 @@
 import 'package:em_sala_mais/backend/model/room.dart';
-import 'package:em_sala_mais/backend/model/schedule_tearcher.dart';
+import 'package:em_sala_mais/backend/model/schedule_teacher.dart';
 
 class RoomAllocation {
   final int id;

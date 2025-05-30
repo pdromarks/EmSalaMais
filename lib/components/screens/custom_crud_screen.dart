@@ -197,7 +197,7 @@ class _CustomCrudScreenState extends State<CustomCrudScreen> {
                                               visualDensity: VisualDensity.compact,
                                               icon: const Icon(Icons.delete, size: 20),
                                               color: Colors.red,
-                                              onPressed: () => _showDeleteDialog(item),
+                                              onPressed: () => widget.onDelete(item),
                                               constraints: const BoxConstraints(
                                                 minWidth: 36,
                                                 minHeight: 36,
@@ -222,34 +222,6 @@ class _CustomCrudScreenState extends State<CustomCrudScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _showDeleteDialog(Map<String, dynamic> item) async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar exclusão'),
-          content: const Text('Deseja realmente excluir este item?'),
-          actions: [
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text(
-                'Excluir',
-                style: TextStyle(color: Colors.red),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                widget.onDelete(item);
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }

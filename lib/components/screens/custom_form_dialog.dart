@@ -62,6 +62,27 @@ class CustomFormDialog extends StatefulWidget {
 }
 
 class _CustomFormDialogState extends State<CustomFormDialog> {
+  late Map<String, dynamic> _internalFormData;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalFormData = {};
+    // Inicializa _internalFormData com os valores iniciais dos campos
+    for (var field in widget.fields) {
+      String fieldKey = field.label; // Usar field.label como chave única para o mapa
+
+      if (field.isDropdown) {
+        _internalFormData[fieldKey] = field.value;
+      } else if (field.isCounter) {
+        _internalFormData[fieldKey] = field.counterValue;
+      } else if (field.isSwitch) {
+        _internalFormData[fieldKey] = field.switchValue;
+      }
+      // TextEditingControllers são gerenciados externamente e não precisam ser armazenados aqui
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
@@ -122,47 +143,53 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                 SizedBox(height: height * 0.02),
                 ...widget.fields.map((field) {
                   Widget fieldWidget;
+                  String fieldKey = field.label; // Chave para _internalFormData
 
                   if (field.isDropdown) {
+                    String? currentDropdownValue = _internalFormData[fieldKey] as String?;
+                    DropdownValueModel? selectedValueModel;
+
+                    if (currentDropdownValue != null) {
+                      String displayLabel = currentDropdownValue; // Fallback
+                      var matchingItem = field.items?.firstWhere(
+                        (item) => item.value == currentDropdownValue,
+                        orElse: null, // Retorna null se não encontrar
+                      );
+                      if (matchingItem != null && matchingItem.child is Text) {
+                        displayLabel = (matchingItem.child as Text).data ?? currentDropdownValue;
+                      }
+                      selectedValueModel = DropdownValueModel(value: currentDropdownValue, label: displayLabel);
+                    }
+
                     fieldWidget = CustomDropdown(
                       items: field.items?.map((item) => DropdownValueModel(
                         value: item.value ?? '',
                         label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
                       )).toList() ?? [],
-                      selectedValue: field.value != null
-                          ? DropdownValueModel(
-                              value: field.value!,
-                              label: field.items
-                                      ?.firstWhere(
-                                        (item) => item.value == field.value,
-                                        orElse: () => const DropdownMenuItem(
-                                          value: '',
-                                          child: Text(''),
-                                        ),
-                                      )
-                                      .child is Text
-                                  ? (field.items!.firstWhere(
-                                      (item) => item.value == field.value,
-                                      orElse: () => const DropdownMenuItem(
-                                        value: '',
-                                        child: Text(''),
-                                      ),
-                                    ).child as Text)
-                                      .data ??
-                                      ''
-                                  : '',
-                            )
-                          : null,
-                      onChanged: (value) => field.onChanged?.call(value?.value),
+                      selectedValue: selectedValueModel,
+                      onChanged: (selectedModel) {
+                        setState(() {
+                          _internalFormData[fieldKey] = selectedModel?.value;
+                        });
+                        field.onChanged?.call(selectedModel?.value);
+                      },
                       label: field.label,
-                      dropdownId: field.label,
-                      enableSearch: true,
+                      dropdownId: fieldKey, // Usar fieldKey como dropdownId
+                      enableSearch: true, // Assumindo que já estava assim
+                      // Se CustomFormField tiver um ícone e quisermos passá-lo para CustomDropdown,
+                      // CustomDropdown precisaria de um parâmetro para ícone.
+                      // Por ora, o ícone de CustomFormField é usado principalmente por CustomTextField.
                     );
                   } else if (field.isCounter) {
                     fieldWidget = CustomCounter(
                       label: field.label,
-                      value: field.counterValue ?? 0,
-                      onChanged: field.onCounterChanged ?? (_) {},
+                      value: _internalFormData[fieldKey] as int? ?? field.counterValue ?? 0,
+                      onChanged: (newValue) {
+                        setState(() {
+                          _internalFormData[fieldKey] = newValue;
+                        });
+                        field.onCounterChanged?.call(newValue);
+                      },
                       fontSize: fontSize,
                       color: AppColors.verdeUNICV,
                     );
@@ -179,8 +206,13 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                         ),
                         const Spacer(),
                         Switch(
-                          value: field.switchValue ?? false,
-                          onChanged: field.onSwitchChanged,
+                          value: _internalFormData[fieldKey] as bool? ?? field.switchValue ?? false,
+                          onChanged: (newValue) {
+                            setState(() {
+                              _internalFormData[fieldKey] = newValue;
+                            });
+                            field.onSwitchChanged?.call(newValue);
+                          },
                           activeColor: AppColors.verdeUNICV,
                         ),
                       ],
@@ -219,41 +251,27 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                     CustomButton(
                       text: 'Salvar',
                       onPressed: () {
-                        final Map<String, dynamic> formData = {
+                        final Map<String, dynamic> formDataToSave = {
                           'id':
                               widget.initialData?['id'] ??
                               DateTime.now().toString(),
                         };
 
                         for (var field in widget.fields) {
+                          String formKey = field.label.toLowerCase().replaceAll(
+                                  ' ',
+                                  '_',
+                                );
                           if (field.controller != null) {
-                            formData[field.label.toLowerCase().replaceAll(
-                                  ' ',
-                                  '_',
-                                )] =
+                            formDataToSave[formKey] =
                                 field.controller!.text;
-                          } else if (field.isDropdown) {
-                            formData[field.label.toLowerCase().replaceAll(
-                                  ' ',
-                                  '_',
-                                )] =
-                                field.value;
-                          } else if (field.isCounter) {
-                            formData[field.label.toLowerCase().replaceAll(
-                                  ' ',
-                                  '_',
-                                )] =
-                                field.counterValue;
-                          } else if (field.isSwitch) {
-                            formData[field.label.toLowerCase().replaceAll(
-                                  ' ',
-                                  '_',
-                                )] =
-                                field.switchValue;
+                          } else if (field.isDropdown || field.isCounter || field.isSwitch) {
+                            // Usar o valor de _internalFormData
+                            formDataToSave[formKey] =
+                                _internalFormData[field.label]; // Usar field.label como chave
                           }
                         }
-
-                        widget.onSave(formData);
+                        widget.onSave(formDataToSave);
                       },
                       backgroundColor: AppColors.verdeUNICV,
                       width: isDesktop ? width * 0.08 : width * 0.25,
