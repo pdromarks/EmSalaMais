@@ -1,5 +1,5 @@
 import 'package:em_sala_mais/backend/model/bloco.dart';
-import 'package:em_sala_mais/backend/model/bloco_dto.dart';
+import 'package:em_sala_mais/backend/dto/bloco_dto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BlocoService {
@@ -26,8 +26,8 @@ class BlocoService {
     }
   }
   
-  Future<Bloco> updateBloco(Bloco bloco) async {
-    final response = await supabase.from('bloco').update(bloco.toJson()).eq('id', bloco.id as int).select();
+  Future<Bloco> updateBloco(BlocoDTO bloco, int blocoId) async {
+    final response = await supabase.from('bloco').update(bloco.toJson()).eq('id', blocoId).select();
     return Bloco.fromJson(response.first);
   }
 

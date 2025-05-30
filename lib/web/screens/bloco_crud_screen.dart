@@ -1,4 +1,4 @@
-import 'package:em_sala_mais/backend/model/bloco_dto.dart';
+import 'package:em_sala_mais/backend/dto/bloco_dto.dart';
 import 'package:em_sala_mais/backend/services/bloco.service.dart';
 import 'package:flutter/material.dart';
 import '../../components/screens/custom_crud_screen.dart'; // Assuming this is correctly defined
@@ -149,17 +149,13 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
             }
             return;
         }
-
-        final Bloco updatedBloco = Bloco(
-          id: originalBloco.id, // Use original ID
+        final BlocoDTO updatedBloco = BlocoDTO(
           name: result['nome_do_bloco'] as String,
           description: result['descricao'] as String?,
           campus: campusValue,
-          createdAt: originalBloco.createdAt, // Preserve original if available in model
-          updatedAt: DateTime.now().toUtc(), // Or let Supabase handle it
+          updatedAt: DateTime.now(),
         );
-        
-        await _blocoService.updateBloco(updatedBloco);
+        await _blocoService.updateBloco(updatedBloco, originalBloco.id as int);
         _fetchBlocos(); // Refresh list
       } catch (e) {
         if (mounted) {
@@ -266,12 +262,11 @@ class _BlocoCrudScreenState extends State<BlocoCrudScreen> {
             }
             campusValue = Campus.maringa; // Fallback to a default campus
         }
-
         final BlocoDTO novoBloco = BlocoDTO(
           name: result['nome_do_bloco'] as String,
           description: result['descricao'] as String?,
           campus: campusValue,
-          // createdAt and updatedAt are typically handled by the database.
+          updatedAt: DateTime.now(),
         );
         
         await _blocoService.createBloco(novoBloco);

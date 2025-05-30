@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_tf.dart';
-import '../widgets/custom_btn.dart';
-import '../widgets/custom_switch.dart';
 import '../../theme/theme.dart';
 
 class CustomField {
