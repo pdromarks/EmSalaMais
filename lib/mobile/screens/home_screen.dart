@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart'; // Assuming theme.dart is in lib/theme/
 import './room_allocation_screen.dart'; // Import RoomAllocationScreen
+import './search_teacher_screen.dart'; // Import SearchTeacherScreen
+import './user_screen.dart'; // Import UserScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,8 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // Placeholder for the pages to be displayed by the BottomNavigationBar
   static const List<Widget> _widgetOptions = <Widget>[
     RoomAllocationScreen(), // Navigate to RoomAllocationScreen for Home
-    Text('Index 1: Search'), // Placeholder for Search screen content
-    Text('Index 2: Rooms'), // Placeholder for Rooms screen content
+    SearchTeacherScreen(), // Navigate to SearchTeacherScreen for Search
+    Text('Index 2: Calendar'), // Placeholder for Rooms screen content
   ];
 
   void _onItemTapped(int index) {
@@ -54,9 +56,10 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.person_outline_rounded),
             tooltip: 'Perfil do Usuário',
             onPressed: () {
-              // TODO: Navigate to user profile screen
-              // Navigator.push(context, MaterialPageRoute(builder: (context) => UserProfileScreen()));
-              print('Navigate to User Profile Screen');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UserScreen()),
+              );
             },
           ),
         ],
@@ -72,18 +75,18 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
-            label: 'Home',
+            label: 'Início',
             
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search_outlined),
             activeIcon: Icon(Icons.search),
-            label: 'Search',
+            label: 'Buscar',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.meeting_room_outlined),
-            activeIcon: Icon(Icons.meeting_room),
-            label: 'Rooms',
+            icon: Icon(Icons.calendar_month_outlined),
+            activeIcon: Icon(Icons.calendar_month),
+            label: 'Agenda',
           ),
         ],
         currentIndex: _selectedIndex,
