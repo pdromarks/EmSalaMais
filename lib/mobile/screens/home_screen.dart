@@ -3,6 +3,7 @@ import '../../theme/theme.dart'; // Assuming theme.dart is in lib/theme/
 import './room_allocation_screen.dart'; // Import RoomAllocationScreen
 import './search_teacher_screen.dart'; // Import SearchTeacherScreen
 import './user_screen.dart'; // Import UserScreen
+import './calendar_screen.dart'; // Import CalendarScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     RoomAllocationScreen(), // Navigate to RoomAllocationScreen for Home
     SearchTeacherScreen(), // Navigate to SearchTeacherScreen for Search
-    Text('Index 2: Calendar'), // Placeholder for Rooms screen content
+    CalendarScreen(), // Navigate to CalendarScreen for Calendar/Agenda
   ];
 
   void _onItemTapped(int index) {

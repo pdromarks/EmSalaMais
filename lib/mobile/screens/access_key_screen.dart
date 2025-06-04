@@ -55,11 +55,13 @@ class AccessKeyScreen extends StatelessWidget {
         builder: (BuildContext context, BoxConstraints constraints) {
           return Center(
             child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 0 : horizontalPadding,
+                vertical: verticalSpacing * 1.5,
+              ),
               child:
                   isDesktop
                       ? _buildDesktopLayout(
-                        width,
-                        height,
                         logoHeight,
                         verticalSpacing,
                         cardWidth,
@@ -69,11 +71,10 @@ class AccessKeyScreen extends StatelessWidget {
                         iconSize,
                       )
                       : _buildMobileLayout(
-                        width,
                         height,
-                        horizontalPadding,
                         logoHeight,
                         verticalSpacing,
+                        cardPadding,
                         fontSize,
                         buttonFontSize,
                         iconSize,
@@ -86,8 +87,6 @@ class AccessKeyScreen extends StatelessWidget {
   }
 
   Widget _buildDesktopLayout(
-    double width,
-    double height,
     double logoHeight,
     double verticalSpacing,
     double cardWidth,
@@ -96,88 +95,57 @@ class AccessKeyScreen extends StatelessWidget {
     double buttonFontSize,
     double iconSize,
   ) {
-    return Container(
+    return SizedBox(
       width: cardWidth,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            spreadRadius: 1,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(cardPadding),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: logoHeight,
-            child: Image.asset('assets/images/emsalamais.png'),
-          ),
-          SizedBox(height: verticalSpacing * 1.2),
-          CustomTextField(
-            label: 'Chave de Acesso',
-            borderColor: AppColors.ciano,
-            labelColor: AppColors.ciano,
-            fontSize: fontSize,
-            prefixIcon: Icons.vpn_key_outlined,
-            iconColor: AppColors.ciano,
-            iconSize: iconSize,
-          ),
-          SizedBox(height: verticalSpacing * 1.2),
-          CustomButton(
-            text: 'Próximo',
-            onPressed: () {},
-            backgroundColor: AppColors.ciano,
-            icon: Icons.arrow_forward_rounded,
-            width: double.infinity,
-            height: 48,
-            fontSize: buttonFontSize,
-            iconSize: iconSize,
-          ),
-          CustomSwitch(
-            value: true,
-            onChanged: (value) {},
-            label: 'Label',
-            width: 100,
-            height: 50,
-          ),
-        ],
+      child: Padding(
+        padding: EdgeInsets.all(cardPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: logoHeight,
+              child: Image.asset('assets/images/emsalamais.png'),
+            ),
+            SizedBox(height: verticalSpacing * 1.2),
+            CustomTextField(
+              label: 'Chave de Acesso',
+              borderColor: AppColors.ciano,
+              labelColor: AppColors.ciano,
+              fontSize: fontSize,
+              prefixIcon: Icons.vpn_key_outlined,
+              iconColor: AppColors.ciano,
+              iconSize: iconSize,
+            ),
+            SizedBox(height: verticalSpacing * 1.2),
+            CustomButton(
+              text: 'Próximo',
+              onPressed: () {},
+              backgroundColor: AppColors.ciano,
+              icon: Icons.arrow_forward_rounded,
+              width: double.infinity,
+              height: 48,
+              fontSize: buttonFontSize,
+              iconSize: iconSize,
+            ),
+            SizedBox(height: verticalSpacing),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildMobileLayout(
-    double width,
     double height,
-    double horizontalPadding,
     double logoHeight,
     double verticalSpacing,
+    double cardPadding,
     double fontSize,
     double buttonFontSize,
     double iconSize,
   ) {
-    return Container(
-      width: width - (horizontalPadding * 2),
-      margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(width * 0.06),
+    return Padding(
+      padding: EdgeInsets.all(cardPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,

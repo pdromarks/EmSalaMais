@@ -224,7 +224,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: Icon(
-                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    Icons.arrow_drop_down,
                     color: AppColors.verdeUNICV,
                     size: widget.iconSize ?? 24,
                     ),

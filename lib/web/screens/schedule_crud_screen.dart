@@ -11,9 +11,8 @@ class ScheduleCrudScreen extends StatefulWidget {
 }
 
 class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
-  final ScrollController _headerScrollController = ScrollController();
-  final ScrollController _contentScrollController = ScrollController();
-  bool _isSyncing = false; // Flag para evitar loops de sincronização
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
 
   final List<String> weekdays = [
     'Segunda',
@@ -54,6 +53,17 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       'time': 'Segunda Aula',
       'weekday': 'Terça'
     },
+     {
+      'id': '3',
+      'course': 'Engenharia Civil',
+      'semester': '5º Sem',
+      'period': 'Noturno',
+      'className': 'C',
+      'teacher': 'Professor 3',
+      'subject': 'Estruturas de Concreto',
+      'time': 'Terceira Aula',
+      'weekday': 'Segunda'
+    },
   ];
 
   // Dados mockados para exemplo
@@ -73,45 +83,27 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       'period': 'Matutino',
       'className': 'B',
       'displayName': 'Ciência da Computação - 2º Sem - Turma B'
+    },
+    {
+      'id': '3',
+      'course': 'Engenharia Civil',
+      'semester': '5º Sem',
+      'period': 'Noturno',
+      'className': 'C',
+      'displayName': 'Engenharia Civil - 5º Sem - Turma C'
     }
   ];
 
   @override
   void initState() {
     super.initState();
-    _headerScrollController.addListener(_syncContentScroll);
-    _contentScrollController.addListener(_syncHeaderScroll);
   }
 
   @override
   void dispose() {
-    _headerScrollController.removeListener(_syncContentScroll);
-    _contentScrollController.removeListener(_syncHeaderScroll);
-    _headerScrollController.dispose();
-    _contentScrollController.dispose();
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
-  }
-
-  void _syncHeaderScroll() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_headerScrollController.hasClients && _contentScrollController.hasClients) {
-      if (_headerScrollController.offset != _contentScrollController.offset) {
-        _contentScrollController.jumpTo(_headerScrollController.offset);
-      }
-    }
-    Future.delayed(const Duration(milliseconds: 50), () => _isSyncing = false); // Pequeno delay para evitar chamadas rápidas
-  }
-
-  void _syncContentScroll() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_contentScrollController.hasClients && _headerScrollController.hasClients) {
-      if (_contentScrollController.offset != _headerScrollController.offset) {
-        _headerScrollController.jumpTo(_contentScrollController.offset);
-      }
-    }
-    Future.delayed(const Duration(milliseconds: 50), () => _isSyncing = false);
   }
 
   void _handleDelete(Map<String, dynamic> schedule) {
@@ -119,7 +111,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir este horário?'),
+        content: const Text('Deseja realmente excluir este horário?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -144,8 +136,8 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
 
   Future<void> _showFormDialog([Map<String, dynamic>? initialData]) async {
     String? selectedClass = initialData?['className'];
-    String? selectedTeacher = initialData?['teacher'] == 'Professor 1' ? '1' : '2';
-    String? selectedSubject = initialData?['subject'] == 'Disciplina 1' ? '1' : '2';
+    String? selectedTeacher = initialData?['teacher'] == 'Professor 1' ? '1' : (initialData?['teacher'] == 'Professor 2' ? '2' : '3');
+    String? selectedSubject = initialData?['subject'] == 'Disciplina 1' ? '1' : (initialData?['subject'] == 'Disciplina 2' ? '2' : '3');
     String? selectedWeekday = initialData?['weekday'];
     String? selectedTime = initialData?['time'];
     Map<String, String>? selectedClassData;
@@ -153,9 +145,13 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     if (selectedClass != null) {
       selectedClassData = mockClasses.firstWhere(
         (c) => c['className'] == selectedClass,
-        orElse: () => mockClasses[0],
+        orElse: () => mockClasses[0], // Ensure there's always a fallback
       );
+    } else if (mockClasses.isNotEmpty) {
+      selectedClassData = mockClasses[0]; // Default if no initial data
+      selectedClass = selectedClassData['className'];
     }
+
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -188,6 +184,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               items: const [
                 DropdownMenuItem(value: '1', child: Text('Professor 1')),
                 DropdownMenuItem(value: '2', child: Text('Professor 2')),
+                DropdownMenuItem(value: '3', child: Text('Professor 3')),
               ],
               onChanged: (value) => setStateDialog(() => selectedTeacher = value),
             ),
@@ -198,6 +195,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               items: const [
                 DropdownMenuItem(value: '1', child: Text('Disciplina 1')),
                 DropdownMenuItem(value: '2', child: Text('Disciplina 2')),
+                DropdownMenuItem(value: '3', child: Text('Estruturas de Concreto')),
               ],
               onChanged: (value) => setStateDialog(() => selectedSubject = value),
             ),
@@ -237,6 +235,37 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               );
               return;
             }
+            
+            String teacherName;
+            switch (selectedTeacher) {
+              case '1':
+                teacherName = 'Professor 1';
+                break;
+              case '2':
+                teacherName = 'Professor 2';
+                break;
+              case '3':
+                teacherName = 'Professor 3';
+                break;
+              default:
+                teacherName = '';
+            }
+
+            String subjectName;
+            switch (selectedSubject) {
+              case '1':
+                subjectName = 'Disciplina 1';
+                break;
+              case '2':
+                subjectName = 'Disciplina 2';
+                break;
+              case '3':
+                subjectName = 'Estruturas de Concreto';
+                break;
+              default:
+                subjectName = '';
+            }
+
 
             final scheduleData = {
               'id': initialData?['id'] ?? DateTime.now().toString(),
@@ -244,8 +273,8 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               'semester': selectedClassData?['semester'] ?? '',
               'period': selectedClassData?['period'] ?? '',
               'className': selectedClass ?? '',
-              'teacher': selectedTeacher == '1' ? 'Professor 1' : 'Professor 2',
-              'subject': selectedSubject == '1' ? 'Disciplina 1' : 'Disciplina 2',
+              'teacher': teacherName,
+              'subject': subjectName,
               'time': selectedTime ?? '',
               'weekday': selectedWeekday ?? '',
             };
@@ -270,112 +299,102 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     }
   }
 
-  Widget _buildFixedHeadersRow(BuildContext context) {
+  Widget _buildWeekdayColumnWithContent(BuildContext context, String weekday) {
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
-    final double fontSize = (width * 0.012).clamp(14.0, 20.0); // Consistente com WeekdayColumn original
+    final double fontSize = (width * 0.012).clamp(14.0, 20.0);
 
-    return Row(
-      children: weekdays.map((weekday) {
-        final schedulesForDay = schedules.where((s) => s['weekday'] == weekday).toList();
-        return Container(
-          width: 300, // Largura fixa para cada coluna de cabeçalho
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), // Margem para simular o card
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.verdeUNICV,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), // Apenas cantos superiores arredondados
-             boxShadow: [ // Sombra sutil para o cabeçalho
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
+    final schedulesForDay = schedules.where((s) => s['weekday'] == weekday).toList();
+    final weekdaySchedulesCards = schedulesForDay
+        .map((schedule) => ScheduleCard(
+              course: schedule['course'],
+              semester: schedule['semester'],
+              period: schedule['period'],
+              className: schedule['className'],
+              teacher: schedule['teacher'],
+              subject: schedule['subject'],
+              time: schedule['time'],
+              onEdit: () => _showFormDialog(schedule),
+              onDelete: () => _handleDelete(schedule),
+            ))
+        .toList();
+
+    return Container(
+      width: 300, // Fixed width for each weekday column
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // Consistent margin
+      decoration: BoxDecoration(
+        color: Colors.white, // Background for the entire column content area
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4, // Consistent shadow
+            offset: const Offset(0, 2),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                weekday,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: fontSize * 1.2,
-                ),
-              ),
-              Text(
-                '${schedulesForDay.length} horário(s)',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: fontSize * 0.9,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildScrollableContentRow(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double width = screenSize.width;
-    final double fontSize = (width * 0.012).clamp(14.0, 20.0); // Consistente
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Alinha colunas pelo topo
-      children: weekdays.map((weekday) {
-        final weekdaySchedulesCards = schedules
-            .where((schedule) => schedule['weekday'] == weekday)
-            .map((schedule) => ScheduleCard(
-                  course: schedule['course'],
-                  semester: schedule['semester'],
-                  period: schedule['period'],
-                  className: schedule['className'],
-                  teacher: schedule['teacher'],
-                  subject: schedule['subject'],
-                  time: schedule['time'],
-                  onEdit: () => _showFormDialog(schedule),
-                  onDelete: () => _handleDelete(schedule),
-                ))
-            .toList();
-
-        return Container(
-          width: 300, // Largura fixa para cada coluna de conteúdo
-          margin: const EdgeInsets.symmetric(horizontal: 4), // Apenas margem horizontal
-          decoration: BoxDecoration(
-             color: Colors.white, // Fundo branco para a área dos cards
-             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)), // Cantos inferiores arredondados
-             boxShadow: [ // Sombra correspondente ao cabeçalho
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 2,
-                offset: const Offset(0, 1), // Sombra para baixo
-              ),
-            ],
-          ),
-          child: weekdaySchedulesCards.isEmpty
-              ? Container( // Container para centralizar e dar padding à mensagem
-                  padding: const EdgeInsets.all(16.0),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Nenhum horário cadastrado',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: fontSize,
-                    ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Important for Column inside scrollview
+        children: [
+          // Header part
+          Container(
+            width: double.infinity, // Take full width of the 300px container
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.verdeUNICV,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  weekday,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: fontSize * 1.2,
                   ),
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min, // Para que a coluna não tente ser infinita
-                  children: weekdaySchedulesCards,
                 ),
-        );
-      }).toList(),
+                Text(
+                  '${schedulesForDay.length} horário(s)',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: fontSize * 0.9,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content part (cards)
+          if (weekdaySchedulesCards.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              alignment: Alignment.center,
+              constraints: const BoxConstraints(minHeight: 100), // Give some min height to empty message
+              child: Text(
+                'Nenhum horário cadastrado',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: fontSize,
+                ),
+              ),
+            )
+          else
+            // This Column will allow cards to stack vertically.
+            // The outer vertical SingleChildScrollView will handle its overflow if it's too tall.
+            Padding(
+              padding: const EdgeInsets.all(8.0), // Padding around the cards area
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: weekdaySchedulesCards,
+              ),
+            ),
+        ],
+      ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -394,42 +413,61 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-        padding: EdgeInsets.fromLTRB(
-          width * 0.01,
-          screenSize.height * 0.02,
-          width * 0.01,
-              screenSize.height * 0.01, // Padding menor abaixo do título
-        ),
-              child: Text(
-                'Horários',
-                style: TextStyle(
-                  color: AppColors.verdeUNICV,
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'Inter',
-                ),
+            padding: EdgeInsets.fromLTRB(
+              width * 0.01,
+              screenSize.height * 0.02,
+              width * 0.01,
+              screenSize.height * 0.01,
+            ),
+            child: Text(
+              'Horários',
+              style: TextStyle(
+                color: AppColors.verdeUNICV,
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'Inter',
               ),
             ),
-          // Cabeçalhos Fixos (horizontalmente roláveis)
-          SingleChildScrollView(
-            controller: _headerScrollController,
-            scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(), // Para melhor sensação com sincronização
-            child: _buildFixedHeadersRow(context),
           ),
-          // Conteúdo Rolável (Vertical e Horizontal Sincronizado)
-            Expanded(
-            child: SingleChildScrollView( // Rolagem Vertical Principal
-              physics: const ClampingScrollPhysics(),
-              child: SingleChildScrollView( // Rolagem Horizontal do Conteúdo
-                controller: _contentScrollController,
+          Expanded(
+            child: RawScrollbar(
+              thumbVisibility: true,
+              trackVisibility: true,
+              thickness: 10,
+              thumbColor: AppColors.verdeUNICV.withOpacity(0.6),
+              radius: const Radius.circular(20),
+              controller: _horizontalScrollController,
+              scrollbarOrientation: ScrollbarOrientation.bottom,
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                child: _buildScrollableContentRow(context),
+                controller: _horizontalScrollController,
+                child: SizedBox(
+                  width: weekdays.length * 320, // Largura fixa para garantir scroll
+                  child: RawScrollbar(
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    thickness: 10,
+                    thumbColor: AppColors.verdeUNICV.withOpacity(0.6),
+                    radius: const Radius.circular(20),
+                    controller: _verticalScrollController,
+                    child: SingleChildScrollView(
+                      controller: _verticalScrollController,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0, right: 16.0), // Espaço para ambas as barras de scroll
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: weekdays.map((day) {
+                            return _buildWeekdayColumnWithContent(context, day);
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
+        ],
       ),
     );
   }

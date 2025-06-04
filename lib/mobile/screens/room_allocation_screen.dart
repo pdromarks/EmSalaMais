@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
+import '../../components/widgets/custom_dropdown.dart';
 
 class RoomAllocationScreen extends StatefulWidget {
   const RoomAllocationScreen({super.key});
@@ -10,6 +11,15 @@ class RoomAllocationScreen extends StatefulWidget {
 
 class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
   String _currentDayOfWeek = '';
+  DropdownValueModel? _selectedTurma;
+  String? _openDropdownId;
+
+  final List<DropdownValueModel> _turmas = [
+    DropdownValueModel(value: 'T1', label: 'Turma A'),
+    DropdownValueModel(value: 'T2', label: 'Turma B'),
+    DropdownValueModel(value: 'T3', label: 'Turma C - Manhã'),
+    DropdownValueModel(value: 'T4', label: 'Turma D - Tarde'),
+  ];
 
   @override
   void initState() {
@@ -44,6 +54,16 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
       default:
         return '';
     }
+  }
+
+  void _handleDropdownOpen(String dropdownId) {
+    setState(() {
+      if (_openDropdownId == dropdownId) {
+        _openDropdownId = null;
+      } else {
+        _openDropdownId = dropdownId;
+      }
+    });
   }
 
   Widget _buildAllocationCard(String subject, String room, String teacher, String time) {
@@ -119,9 +139,9 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
     final double width = screenSize.width;
     final double height = screenSize.height;
     
-    // Calcula tamanhos proporcionais
     final double horizontalPadding = width * 0.08;
     final double verticalSpacing = height * 0.02;
+    final double inputFontSize = (width * 0.04).clamp(14.0, 18.0);
     final double titleFontSize = (width * 0.05).clamp(18.0, 24.0);
     final double dayFontSize = (width * 0.08).clamp(24.0, 32.0);
 
@@ -130,54 +150,76 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: horizontalPadding,
-          vertical: height * 0.04,
+          vertical: height * 0.03,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Center(
+            Text(
+              _currentDayOfWeek,
+              style: TextStyle(
+                fontSize: dayFontSize,
+                fontWeight: FontWeight.bold,
+                color: AppColors.verdeUNICV,
+                fontFamily: 'Inter',
+              ),
+            ),
+            SizedBox(height: verticalSpacing * 1.5),
+            CustomDropdown(
+              label: 'Selecionar Turma',
+              items: _turmas,
+              selectedValue: _selectedTurma,
+              onChanged: (value) {
+                setState(() {
+                  _selectedTurma = value;
+                  _openDropdownId = null;
+                  print('Turma selecionada: ${_selectedTurma?.label}');
+                });
+              },
+              width: width * 0.84,
+              fontSize: inputFontSize,
+              dropdownId: 'turma_selector',
+              onOpen: () => _handleDropdownOpen('turma_selector'),
+              openDropdownId: _openDropdownId,
+            ),
+            SizedBox(height: verticalSpacing * 2),
+            Align(
+              alignment: Alignment.centerLeft,
               child: Text(
-                _currentDayOfWeek,
+                '1ª Aula',
                 style: TextStyle(
-                  fontSize: dayFontSize,
-                  fontWeight: FontWeight.bold,
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.verdeUNICV,
                   fontFamily: 'Inter',
                 ),
               ),
             ),
-            SizedBox(height: verticalSpacing * 2),
-            Text(
-              '1ª Aula',
-              style: TextStyle(
-                fontSize: titleFontSize,
-                fontWeight: FontWeight.w600,
-                color: AppColors.verdeUNICV,
-                fontFamily: 'Inter',
-              ),
-            ),
             const SizedBox(height: 12.0),
             _buildAllocationCard(
-              'Cálculo I',
-              'Sala 101',
-              'Prof. Dr. João Silva',
+              _selectedTurma != null ? 'Mat. Discreta (${_selectedTurma!.label})' : 'Mat. Discreta',
+              'Sala 202',
+              'Prof. Dr. Carlos Andrade',
               '08:00 - 09:40',
             ),
             SizedBox(height: verticalSpacing * 2),
-            Text(
-              '2ª Aula',
-              style: TextStyle(
-                fontSize: titleFontSize,
-                fontWeight: FontWeight.w600,
-                color: AppColors.verdeUNICV,
-                fontFamily: 'Inter',
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '2ª Aula',
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.verdeUNICV,
+                  fontFamily: 'Inter',
+                ),
               ),
             ),
             const SizedBox(height: 12.0),
             _buildAllocationCard(
-              'Algoritmos Avançados',
-              'Lab. Info II',
-              'Profa. Dra. Maria Oliveira',
+              _selectedTurma != null ? 'Proj. Interdisciplinar (${_selectedTurma!.label})' : 'Proj. Interdisciplinar',
+              'Lab. Robótica',
+              'Profa. Dra. Ana Beatriz',
               '10:00 - 11:40',
             ),
           ],
