@@ -24,12 +24,10 @@ class Bloco {
       );
     }
 
-    Map<String, dynamic> toJson() {
-      return {
+    Map<String, dynamic> toJson() => {
         'id': id,
         'nome': name,
         'descricao': description,
         'campus': campus.name
-      };
-    }
+    };
 }

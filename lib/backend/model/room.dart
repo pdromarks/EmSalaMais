@@ -6,16 +6,27 @@ class Room {
   final int? chairsNumber;
   final bool hasTv;
   final bool hasProjector;
-  final Bloco bloco; 
-  final DateTime createAt;
-  final DateTime updatedAt;
+  final Bloco bloco;
+  final DateTime? createAt;
+  final DateTime? updatedAt;
 
-  Room({required this.id,
-        required this.name,
-        this.chairsNumber,
-        required this.hasTv,
-        required this.hasProjector,
-        required this.bloco,
-        required this.createAt,
-        required this.updatedAt});
+  Room({
+    required this.id,
+    required this.name,
+    this.chairsNumber,
+    required this.hasTv,
+    required this.hasProjector,
+    required this.bloco,
+    this.createAt,
+    this.updatedAt,
+  });
+
+  factory Room.fromJson(Map<String, dynamic> json) => Room(
+    id: json['id'],
+    name: json['name'],
+    chairsNumber: json['chairsNumber'],
+    hasTv: json['hasTv'],
+    hasProjector: json['hasProjector'],
+    bloco: Bloco.fromJson(json['bloco']),
+  );
 }

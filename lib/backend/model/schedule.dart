@@ -5,15 +5,22 @@ class Schedule {
   final String scheduleStart;
   final String scheduleEnd;
   final ScheduleTime scheduleTime;
-  final DateTime createAt;
-  final DateTime updatedAt;
+  final DateTime? createAt;
+  final DateTime? updatedAt;
 
   Schedule({
-    required this.id, 
-    required this.scheduleStart, 
+    required this.id,
+    required this.scheduleStart,
     required this.scheduleEnd,
     required this.scheduleTime,
-    required this.createAt,
-    required this.updatedAt
+    this.createAt,
+    this.updatedAt,
   });
+
+  factory Schedule.fromJson(Map<String, dynamic> json) => Schedule(
+    id: json['id'],
+    scheduleStart: json['scheduleStart'],
+    scheduleEnd: json['scheduleEnd'],
+    scheduleTime: ScheduleTime.values.byName(json['scheduleTime']),
+  );
 }
