@@ -23,10 +23,10 @@ class Room {
 
   factory Room.fromJson(Map<String, dynamic> json) => Room(
     id: json['id'],
-    name: json['name'],
-    chairsNumber: json['chairsNumber'],
-    hasTv: json['hasTv'],
-    hasProjector: json['hasProjector'],
+    name: json['name'] ?? json['nome'] ?? '',
+    chairsNumber: json['chairsNumber'] ?? json['numero_cadeiras'],
+    hasTv: json['hasTv'] ?? json['tem_tv'] ?? false,
+    hasProjector: json['hasProjector'] ?? json['tem_projetor'] ?? false,
     bloco: Bloco.fromJson(json['bloco']),
   );
 }

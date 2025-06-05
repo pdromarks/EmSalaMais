@@ -12,5 +12,5 @@ class Subject {
   });
 
   factory Subject.fromJson(Map<String, dynamic> json) =>
-      Subject(id: json['id'], name: json['name']);
+      Subject(id: json['id'], name: json['name'] ?? json['nome'] ?? '');
 }
