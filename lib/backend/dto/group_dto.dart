@@ -16,7 +16,7 @@ class GroupDTO extends DefaultDto {
   Map<String, dynamic> toJson() {
     return {
       'nome': name,
-      'curso_id': courseId,
+      'id_curso': courseId,
       'periodo_semestre': semester.name,
       'atualizado_em': updatedAt.toIso8601String(),
     };

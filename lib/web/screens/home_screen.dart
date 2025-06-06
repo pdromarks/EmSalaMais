@@ -6,7 +6,7 @@ import 'room_crud_screen.dart';
 import 'teacher_crud_screen.dart';
 import 'subject_crud_screen.dart';
 import 'course_crud_screen.dart';
-import 'class_crud_screen.dart';
+import 'group_crud_screen.dart';
 import 'schedule_crud_screen.dart';
 
 class MenuItem {
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
     MenuItem(
       title: 'Turmas',
       icon: Icons.groups,
-      screen: const ClassCrudScreen(),
+      screen: const GroupCrudScreen(),
     ),
     MenuItem(
       title: 'Horários',

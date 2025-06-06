@@ -22,8 +22,8 @@ class TeacherService {
 
       for (var subjectId in teacher.subjectsIds) {
         await supabase.from('professor_disciplina').insert({
-          'professor_id': response.first['id'],
-          'disciplina_id': subjectId,
+          'id_professor': response.first['id'],
+          'id_disciplina': subjectId,
         });
       }
 
@@ -40,10 +40,21 @@ class TeacherService {
             .update(teacher.toJson())
             .eq('id', teacherId)
             .select();
+    // Remover todos os vínculos antigos
+    await supabase.from('professor_disciplina').delete().eq('id_professor', teacherId);
+    // Inserir os novos vínculos
+    for (var subjectId in teacher.subjectsIds) {
+      await supabase.from('professor_disciplina').insert({
+        'id_professor': teacherId,
+        'id_disciplina': subjectId,
+      });
+    }
     return Teacher.fromJson(response.first);
   }
 
   Future<void> deleteTeacher(int id) async {
+    // Excluir vínculos na tabela de relacionamento antes de excluir o professor
+    await supabase.from('professor_disciplina').delete().eq('id_professor', id);
     await supabase.from('professor').delete().eq('id', id);
   }
 }

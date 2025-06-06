@@ -6,19 +6,19 @@ class GroupService {
   final supabase = Supabase.instance.client;
 
   Future<List<Group>> getGroups() async {
-    final response = await supabase.from('turma').select('*');
+    final response = await supabase.from('turma').select('*, curso(*)');
     return response.map((json) => Group.fromJson(json)).toList();
   }
 
   Future<Group> getGroup(int id) async {
-    final response = await supabase.from('turma').select('*').eq('id', id);
+    final response = await supabase.from('turma').select('*, curso(*)').eq('id', id);
     return Group.fromJson(response.first);
   }
 
   Future<Group> createGroup(GroupDTO group) async {
     try {
       final List<Map<String, dynamic>> response =
-          await supabase.from('turma').insert(group.toJson()).select();
+          await supabase.from('turma').insert(group.toJson()).select('*, curso(*)');
 
       return Group.fromJson(response.first);
     } catch (e) {
