@@ -5,12 +5,24 @@ class RoomAllocation {
   final int id;
   final Room room;
   final ScheduleTeacher scheduleTeacher;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
-  RoomAllocation({required this.id,
-                   required this.room,
-                   required this.scheduleTeacher,
-                   required this.createdAt,
-                   required this.updatedAt});
+  RoomAllocation({
+    required this.id,
+    required this.room,
+    required this.scheduleTeacher,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory RoomAllocation.fromJson(Map<String, dynamic> json) {
+    return RoomAllocation(
+      id: json['id'],
+      room: Room.fromJson(json['sala']),
+      scheduleTeacher: ScheduleTeacher.fromJson(
+        json['horario_professor_turma'],
+      ),
+    );
+  }
 }

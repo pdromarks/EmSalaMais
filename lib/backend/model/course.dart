@@ -7,5 +7,5 @@ class Course {
   Course({required this.id, required this.name, this.createAt, this.updatedAt});
 
   factory Course.fromJson(Map<String, dynamic> json) =>
-      Course(id: json['id'], name: json['name'] ?? json['nome'] ?? '');
+      Course(id: json['id'], name: json['nome']);
 }

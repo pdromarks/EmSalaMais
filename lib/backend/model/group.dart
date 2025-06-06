@@ -20,8 +20,8 @@ class Group {
 
   factory Group.fromJson(Map<String, dynamic> json) => Group(
     id: json['id'],
-    name: json['name'],
-    course: Course.fromJson(json['course']),
-    semester: Semester.values.byName(json['semester']),
+    name: json['nome'],
+    course: Course.fromJson(json['curso']),
+    semester: Semester.values.byName(json['periodo_semestre']),
   );
 }

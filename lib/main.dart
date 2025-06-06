@@ -1,3 +1,6 @@
+import 'package:em_sala_mais/backend/dto/schedule_teacher_dto.dart';
+import 'package:em_sala_mais/backend/model/enums.dart';
+import 'package:em_sala_mais/backend/services/schedule_teacher.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,6 +17,18 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
+  final scheduleTeacherService = ScheduleTeacherService();
+  final scheduleTeacher = await scheduleTeacherService.createScheduleTeacher(
+    ScheduleTeacherDTO(
+      scheduleId: 1,
+      teacherId: 1,
+      groupId: 2,
+      subjectId: 2,
+      dayOfWeek: DayOfWeek.segunda,
+      updatedAt: DateTime.now(),
+    ),
+  );
+  print(scheduleTeacher);
   runApp(const EmSalaMaisApp());
 }
 
@@ -39,10 +54,7 @@ class EmSalaMaisApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('pt', 'BR'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
       locale: const Locale('pt', 'BR'),
       home: const HomeScreen(),
     );

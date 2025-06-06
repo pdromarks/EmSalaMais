@@ -19,8 +19,8 @@ class Schedule {
 
   factory Schedule.fromJson(Map<String, dynamic> json) => Schedule(
     id: json['id'],
-    scheduleStart: json['scheduleStart'],
-    scheduleEnd: json['scheduleEnd'],
-    scheduleTime: ScheduleTime.values.byName(json['scheduleTime']),
+    scheduleStart: json['horario_inicio'],
+    scheduleEnd: json['horario_fim'],
+    scheduleTime: ScheduleTime.values.byName(json['periodo_hora']),
   );
 }

@@ -4,7 +4,7 @@ class RoomDTO extends DefaultDto {
   final int? chairsNumber;
   final bool hasTv;
   final bool hasProjector;
-  final int blocoId; 
+  final int blocoId;
 
   RoomDTO({
     required super.name,
@@ -15,6 +15,7 @@ class RoomDTO extends DefaultDto {
     required this.blocoId,
   });
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'nome': name,

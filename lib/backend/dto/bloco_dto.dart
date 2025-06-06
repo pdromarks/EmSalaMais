@@ -12,6 +12,7 @@ class BlocoDTO extends DefaultDto {
     this.campus = Campus.maringa,
   });
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'nome': name,

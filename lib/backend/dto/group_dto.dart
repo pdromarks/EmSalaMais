@@ -12,6 +12,7 @@ class GroupDTO extends DefaultDto {
     required this.semester,
   });
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'nome': name,

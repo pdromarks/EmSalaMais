@@ -12,5 +12,5 @@ class Teacher {
   });
 
   factory Teacher.fromJson(Map<String, dynamic> json) =>
-      Teacher(id: json['id'], name: json['name']);
+      Teacher(id: json['id'], name: json['nome']);
 }

@@ -20,6 +20,13 @@ class TeacherService {
       final List<Map<String, dynamic>> response =
           await supabase.from('professor').insert(teacher.toJson()).select();
 
+      for (var subjectId in teacher.subjectsIds) {
+        await supabase.from('professor_disciplina').insert({
+          'professor_id': response.first['id'],
+          'disciplina_id': subjectId,
+        });
+      }
+
       return Teacher.fromJson(response.first);
     } catch (e) {
       throw Exception("Erro ao criar o professor: $e");
