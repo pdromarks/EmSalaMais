@@ -12,6 +12,15 @@ class GroupDTO extends DefaultDto {
     required this.semester,
   });
 
+  factory GroupDTO.fromJson(Map<String, dynamic> json) {
+    return GroupDTO(
+      name: json['nome'],
+      updatedAt: DateTime.parse(json['atualizado_em']),
+      courseId: json['id_curso'],
+      semester: Semester.values.byName(json['periodo_semestre']),
+    );
+  }
+
   @override
   Map<String, dynamic> toJson() {
     return {

@@ -1,39 +1,43 @@
-import 'package:em_sala_mais/backend/model/group.dart';
 import 'package:em_sala_mais/backend/dto/group_dto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class GroupService {
   final supabase = Supabase.instance.client;
 
-  Future<List<Group>> getGroups() async {
+  Future<List<GroupDTO>> getGroups() async {
     final response = await supabase.from('turma').select('*, curso(*)');
-    return response.map((json) => Group.fromJson(json)).toList();
+    return response.map((json) => GroupDTO.fromJson(json)).toList();
   }
 
-  Future<Group> getGroup(int id) async {
-    final response = await supabase.from('turma').select('*, curso(*)').eq('id', id);
-    return Group.fromJson(response.first);
+  Future<GroupDTO> getGroup(int id) async {
+    final response = await supabase
+        .from('turma')
+        .select('*, curso(*)')
+        .eq('id', id);
+    return GroupDTO.fromJson(response.first);
   }
 
-  Future<Group> createGroup(GroupDTO group) async {
+  Future<GroupDTO> createGroup(GroupDTO group) async {
     try {
-      final List<Map<String, dynamic>> response =
-          await supabase.from('turma').insert(group.toJson()).select('*, curso(*)');
+      final List<Map<String, dynamic>> response = await supabase
+          .from('turma')
+          .insert(group.toJson())
+          .select('*, curso(*)');
 
-      return Group.fromJson(response.first);
+      return GroupDTO.fromJson(response.first);
     } catch (e) {
       throw Exception("Erro ao criar o grupo: $e");
     }
   }
 
-  Future<Group> updateGroup(GroupDTO group, int groupId) async {
+  Future<GroupDTO> updateGroup(GroupDTO group, int groupId) async {
     final response =
         await supabase
             .from('turma')
             .update(group.toJson())
             .eq('id', groupId)
             .select();
-    return Group.fromJson(response.first);
+    return GroupDTO.fromJson(response.first);
   }
 
   Future<void> deleteGroup(int id) async {
