@@ -50,12 +50,12 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     'Sexta',
   ];
 
-  final List<String> timeSlots = [
-    'Primeira Aula',
-    'Segunda Aula',
-    'Terceira Aula',
-    'Quarta Aula',
-  ];
+  final List<String> timeSlots = ['Primeira Aula', 'Segunda Aula'];
+
+  final Map<String, String> timeSlotToEnumName = {
+    'Primeira Aula': '1',
+    'Segunda Aula': '2',
+  };
 
   @override
   void initState() {
@@ -85,44 +85,50 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       final schedules = await _scheduleTeacherService.getScheduleTeachers();
       final groups = await _groupService.getGroups();
       final teachers = await _teacherService.getTeachers();
+      final subjects = await _subjectService.getSubjects();
 
       setState(() {
-        _schedules =
-            schedules
-                .map((dto) {
-                  final teacher = _teachers.firstWhere(
-                    (t) => t.id == dto.teacherId,
-                    orElse: () => Teacher(id: 0, name: ''),
-                  );
-                  final group = _groups.firstWhere(
-                    (g) => g.id == dto.groupId,
-                    orElse:
-                        () => Group(
-                          id: 0,
-                          name: '',
-                          course: Course(id: 0, name: ''),
-                          semester: Semester.primeiro,
-                        ),
-                  );
-                  if (teacher == null || group == null) return null;
-                  return ScheduleTeacher(
-                    id: 0,
-                    teacher: teacher,
-                    group: group,
-                    schedule: Schedule(
-                      id: dto.scheduleId ?? 0,
-                      scheduleStart: '',
-                      scheduleEnd: '',
-                      scheduleTime: ScheduleTime.primeira,
-                    ),
-                    subject: Subject(id: dto.subjectId ?? 0, name: ''),
-                    dayOfWeek: dto.dayOfWeek,
-                  );
-                })
-                .whereType<ScheduleTeacher>()
-                .toList();
-        _groups = groups.map((g) => Group.fromJson(g.toJson())).toList();
+        _groups = groups;
         _teachers = teachers;
+        _subjectsForDropdown = subjects;
+
+        _schedules =
+            schedules.map((dto) {
+              final teacher = teachers.firstWhere(
+                (t) => t.id == dto.teacherId,
+                orElse: () => Teacher(id: 0, name: ''),
+              );
+
+              final group = groups.firstWhere(
+                (g) => g.id == dto.groupId,
+                orElse:
+                    () => Group(
+                      id: 0,
+                      name: '',
+                      course: Course(id: 0, name: ''),
+                      semester: Semester.primeiro,
+                    ),
+              );
+
+              final subject = subjects.firstWhere(
+                (s) => s.id == dto.subjectId,
+                orElse: () => Subject(id: 0, name: ''),
+              );
+
+              return ScheduleTeacher(
+                id: 0, // ID será definido pelo backend
+                teacher: teacher,
+                group: group,
+                schedule: Schedule(
+                  id: dto.scheduleId ?? 0,
+                  scheduleStart: '',
+                  scheduleEnd: '',
+                  scheduleTime: ScheduleTime.primeira,
+                ),
+                subject: subject,
+                dayOfWeek: dto.dayOfWeek,
+              );
+            }).toList();
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,22 +143,35 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
   }
 
   Map<String, String> _getHorarios(String aulaLabel, String periodo) {
-    switch (periodo.toLowerCase()) {
-      case 'noturno':
-        return aulaLabel == 'Primeira Aula'
-            ? {'inicio': '19:00', 'fim': '20:40'}
-            : {'inicio': '20:55', 'fim': '22:30'};
-      case 'matutino':
-        return aulaLabel == 'Primeira Aula'
-            ? {'inicio': '07:30', 'fim': '09:10'}
-            : {'inicio': '09:25', 'fim': '11:05'};
-      case 'vespertino':
-        return aulaLabel == 'Primeira Aula'
-            ? {'inicio': '13:30', 'fim': '15:10'}
-            : {'inicio': '15:25', 'fim': '17:05'};
-      default:
-        throw Exception('Período inválido');
+    final periodoLower = periodo.toLowerCase();
+
+    // Validação do período
+    if (!['noturno', 'matutino', 'vespertino'].contains(periodoLower)) {
+      throw Exception('Período inválido: $periodo');
     }
+
+    // Validação da aula
+    if (!timeSlots.contains(aulaLabel)) {
+      throw Exception('Aula inválida: $aulaLabel');
+    }
+
+    // Mapeamento de horários
+    final horarios = {
+      'noturno': {
+        'Primeira Aula': {'inicio': '19:00', 'fim': '20:40'},
+        'Segunda Aula': {'inicio': '20:55', 'fim': '22:30'},
+      },
+      'matutino': {
+        'Primeira Aula': {'inicio': '07:30', 'fim': '09:10'},
+        'Segunda Aula': {'inicio': '09:25', 'fim': '11:05'},
+      },
+      'vespertino': {
+        'Primeira Aula': {'inicio': '13:30', 'fim': '15:10'},
+        'Segunda Aula': {'inicio': '15:25', 'fim': '17:05'},
+      },
+    };
+
+    return horarios[periodoLower]![aulaLabel]!;
   }
 
   Future<void> _handleDelete(ScheduleTeacher schedule) async {
@@ -248,7 +267,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                                 (group) => DropdownMenuItem<String>(
                                   value: group.id.toString(),
                                   child: Text(
-                                    '${group.course?.name ?? 'Curso Inválido'} - ${_formatSemester(group.semester)} - Turma ${group.name}',
+                                    '${group.course.name} - ${_formatSemester(group.semester)} - Turma ${group.name}',
                                   ),
                                 ),
                               )
@@ -365,44 +384,27 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                       );
                       final horarios = _getHorarios(
                         selectedTime!,
-                        selectedGroup.semester.name,
+                        _getPeriodFromSemester(selectedGroup.semester),
                       );
 
-                      final scheduleDTO = ScheduleDTO(
-                        scheduleStart: horarios['inicio']!,
-                        scheduleEnd: horarios['fim']!,
-                        scheduleTime: ScheduleTime.values.byName(selectedTime!),
+                      // Criação direta do ScheduleTeacherDTO, sem criar Schedule
+                      final scheduleTeacherDTO = ScheduleTeacherDTO(
+                        scheduleId: null, // ou algum valor padrão se necessário
+                        teacherId: selectedTeacherId!,
+                        groupId: selectedGroupId!,
+                        subjectId: selectedSubjectId!,
+                        dayOfWeek: selectedWeekday!,
                         updatedAt: DateTime.now(),
                       );
 
                       if (initialData != null) {
-                        await _scheduleService.updateSchedule(
-                          scheduleDTO,
-                          initialData.schedule.id,
-                        );
                         await _scheduleTeacherService.updateScheduleTeacher(
-                          ScheduleTeacherDTO(
-                            scheduleId: initialData.schedule.id,
-                            teacherId: selectedTeacherId!,
-                            groupId: selectedGroupId!,
-                            subjectId: selectedSubjectId!,
-                            dayOfWeek: selectedWeekday!,
-                            updatedAt: DateTime.now(),
-                          ),
+                          scheduleTeacherDTO,
                           initialData.id,
                         );
                       } else {
-                        final newSchedule = await _scheduleService
-                            .createSchedule(scheduleDTO);
                         await _scheduleTeacherService.createScheduleTeacher(
-                          ScheduleTeacherDTO(
-                            scheduleId: newSchedule.id,
-                            teacherId: selectedTeacherId!,
-                            groupId: selectedGroupId!,
-                            subjectId: selectedSubjectId!,
-                            dayOfWeek: selectedWeekday!,
-                            updatedAt: DateTime.now(),
-                          ),
+                          scheduleTeacherDTO,
                         );
                       }
 
@@ -532,6 +534,35 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
   String _formatSemester(Semester s) {
     final idx = Semester.values.indexOf(s) + 1;
     return '${idx}º Sem';
+  }
+
+  String _getPeriodFromSemester(Semester s) {
+    // Implemente a lógica para mapear o semestre para o período correto
+    // Este é um exemplo básico e pode ser melhorado com uma lógica mais robusta
+    switch (s) {
+      case Semester.primeiro:
+        return 'matutino';
+      case Semester.segundo:
+        return 'vespertino';
+      case Semester.terceiro:
+        return 'vespertino';
+      case Semester.quarto:
+        return 'vespertino';
+      case Semester.quinto:
+        return 'vespertino';
+      case Semester.sexto:
+        return 'vespertino';
+      case Semester.setimo:
+        return 'vespertino';
+      case Semester.oitavo:
+        return 'vespertino';
+      case Semester.nono:
+        return 'vespertino';
+      case Semester.decimo:
+        return 'vespertino';
+      default:
+        throw Exception('Semestre inválido: $s');
+    }
   }
 
   @override

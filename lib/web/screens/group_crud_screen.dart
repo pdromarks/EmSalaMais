@@ -83,7 +83,18 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
       final groups = await _groupService.getGroups();
       final courses = await _courseService.getCourses();
       setState(() {
-        _actualGroups = groups;
+        _actualGroups =
+            groups
+                .map(
+                  (g) => GroupDTO(
+                    name: g.name,
+                    updatedAt: g.updatedAt ?? DateTime.now(),
+                    courseId: g.course.id,
+                    semester: g.semester,
+                    id: g.id,
+                  ),
+                )
+                .toList();
         _actualCourses = courses;
       });
     } catch (e) {

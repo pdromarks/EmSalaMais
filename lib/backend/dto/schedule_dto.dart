@@ -18,7 +18,7 @@ class ScheduleDTO {
       'horario_inicio': scheduleStart,
       'horario_fim': scheduleEnd,
       'periodo_hora': scheduleTime.name,
-      'atualizado_em': updatedAt.toIso8601String(),
+      'atualizado_em': updatedAt.toIso8601String().substring(11, 16),
     };
   }
 
