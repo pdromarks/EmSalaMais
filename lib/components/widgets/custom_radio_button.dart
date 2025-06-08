@@ -3,8 +3,8 @@ import '../../theme/theme.dart';
 
 class CustomRadioButton<T> extends StatelessWidget {
   final String label;
-  final T value;
-  final T groupValue;
+  final T? value;
+  final T? groupValue;
   final List<Map<String, T>> options;
   final ValueChanged<T?> onChanged;
   final double? fontSize;

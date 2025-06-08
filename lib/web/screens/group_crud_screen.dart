@@ -24,6 +24,13 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
   List<Course> _actualCourses = [];
   bool _isLoading = true;
 
+  // Controladores de estado do formulário
+  final TextEditingController _turmaController = TextEditingController();
+  Course? _selectedCourse;
+  Semester? _selectedSemester;
+  String? _selectedTurma;
+  String? _selectedPeriodo;
+
   // Lista de turmas para o dropdown
   final List<String> _turmasOpcoes = ['A', 'B', 'C', 'D', 'E'];
 
@@ -37,7 +44,10 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
   final List<ColumnData> _columns = [
     ColumnData(label: 'Curso', getValue: (item) => item['curso'] as String),
     ColumnData(label: 'Turma', getValue: (item) => item['turma'] as String),
-    ColumnData(label: 'Semestre', getValue: (item) => item['semestre'] as String),
+    ColumnData(
+      label: 'Semestre',
+      getValue: (item) => item['semestre'] as String,
+    ),
     ColumnData(label: 'Período', getValue: (item) => item['periodo'] as String),
   ];
 
@@ -49,8 +59,26 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
     _fetchData();
   }
 
+  @override
+  void dispose() {
+    _turmaController.dispose();
+    super.dispose();
+  }
+
+  void _resetFormState() {
+    setState(() {
+      _selectedCourse = null;
+      _selectedSemester = null;
+      _selectedTurma = null;
+      _selectedPeriodo = null;
+      _turmaController.clear();
+    });
+  }
+
   Future<void> _fetchData() async {
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final groups = await _groupService.getGroups();
       final courses = await _courseService.getCourses();
@@ -63,18 +91,26 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
         SnackBar(content: Text('Erro ao buscar dados: ${e.toString()}')),
       );
     } finally {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  List<Map<String, dynamic>> get _groupsMapped => _actualGroups.map((g) => {
-    'id': g.id,
-    'turma': g.name,
-    'curso': _actualCourses.firstWhere((c) => c.id == g.courseId).name,
-    'semestre': _semesterToLabel(g.semester),
-    'periodo': _getPeriodFromSemester(g.semester),
-    '_original_group_object': g,
-  }).toList();
+  List<Map<String, dynamic>> get _groupsMapped =>
+      _actualGroups
+          .map(
+            (g) => {
+              'id': g.id,
+              'turma': g.name,
+              'curso':
+                  _actualCourses.firstWhere((c) => c.id == g.courseId).name,
+              'semestre': _semesterToLabel(g.semester),
+              'periodo': _getPeriodFromSemester(g.semester),
+              '_original_group_object': g,
+            },
+          )
+          .toList();
 
   String _semesterToLabel(Semester s) {
     final idx = Semester.values.indexOf(s) + 1;
@@ -82,100 +118,162 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
   }
 
   String _getPeriodFromSemester(Semester s) {
-    // Aqui você pode implementar a lógica para determinar o período baseado no semestre
-    // Por enquanto, vamos retornar um valor padrão
-    return 'Noturno';
+    // Mapeamento do semestre para o período
+    switch (s) {
+      case Semester.primeiro:
+      case Semester.segundo:
+        return 'Matutino';
+      case Semester.terceiro:
+      case Semester.quarto:
+        return 'Vespertino';
+      case Semester.quinto:
+      case Semester.sexto:
+        return 'Noturno';
+      default:
+        return 'Noturno';
+    }
+  }
+
+  Semester _getSemesterFromPeriod(String periodo) {
+    // Mapeamento do período para o semestre
+    switch (periodo) {
+      case 'matutino':
+        return Semester.primeiro;
+      case 'vespertino':
+        return Semester.terceiro;
+      case 'noturno':
+        return Semester.quinto;
+      default:
+        return Semester.primeiro;
+    }
   }
 
   Future<void> _handleAdd() async {
-    Course? selectedCourse = _actualCourses.isNotEmpty ? _actualCourses.first : null;
-    Semester selectedSemester = Semester.primeiro;
-    String selectedTurma = _turmasOpcoes[0];
-    String selectedPeriodo = _periodos[0]['value']!;
+    _resetFormState();
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => CustomFormDialog(
-          title: 'Nova Turma',
-          fields: [
-            CustomFormField(
-              label: 'Curso',
-              isDropdown: true,
-              value: selectedCourse?.name,
-              items: _actualCourses.map((c) => DropdownMenuItem<String>(
-                value: c.name,
-                child: Text(c.name),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCourse = _actualCourses.firstWhere((c) => c.name == value);
-                });
-              },
-            ),
-            CustomFormField(
-              label: 'Turma',
-              isDropdown: true,
-              value: selectedTurma,
-              items: _turmasOpcoes.map((turma) => DropdownMenuItem<String>(
-                value: turma,
-                child: Text(turma),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedTurma = value!;
-                });
-              },
-            ),
-            CustomFormField(
-              label: 'Semestre',
-              isDropdown: true,
-              value: _semesterToLabel(selectedSemester),
-              items: Semester.values.map((s) => DropdownMenuItem<String>(
-                value: _semesterToLabel(s),
-                child: Text(_semesterToLabel(s)),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  if (value != null) {
-                    selectedSemester = Semester.values[int.parse(value.split('º')[0]) - 1];
-                  }
-                });
-              },
-            ),
-          ],
-          onSave: (data) {
-            if (selectedCourse == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Selecione um curso'), backgroundColor: Colors.red),
-              );
-              return;
-            }
-            final groupData = {
-              'curso': selectedCourse,
-              'semestre': selectedSemester,
-              'turma': selectedTurma,
-              'periodo': selectedPeriodo,
-            };
-            Navigator.pop(context, groupData);
-          },
-          onCancel: () => Navigator.pop(context),
-          customWidget: Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: CustomRadioButton<String>(
-              label: 'Período',
-              value: selectedPeriodo,
-              groupValue: selectedPeriodo,
-              options: _periodos,
-              onChanged: (value) {
-                setState(() {
-                  selectedPeriodo = value!;
-                });
-              },
-            ),
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => CustomFormDialog(
+                  title: 'Nova Turma',
+                  fields: [
+                    CustomFormField(
+                      label: 'Curso',
+                      isDropdown: true,
+                      value: _selectedCourse?.name,
+                      items:
+                          _actualCourses
+                              .map(
+                                (c) => DropdownMenuItem<String>(
+                                  value: c.name,
+                                  child: Text(c.name),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCourse =
+                              value == null
+                                  ? null
+                                  : _actualCourses.firstWhere(
+                                    (c) => c.name == value,
+                                  );
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Turma',
+                      isDropdown: true,
+                      value: _selectedTurma,
+                      items:
+                          _turmasOpcoes
+                              .map(
+                                (turma) => DropdownMenuItem<String>(
+                                  value: turma,
+                                  child: Text(turma),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedTurma = value;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Semestre',
+                      isDropdown: true,
+                      value:
+                          _selectedSemester != null
+                              ? _semesterToLabel(_selectedSemester!)
+                              : null,
+                      items:
+                          Semester.values
+                              .map(
+                                (s) => DropdownMenuItem<String>(
+                                  value: _semesterToLabel(s),
+                                  child: Text(_semesterToLabel(s)),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value != null) {
+                            _selectedSemester =
+                                Semester.values[int.parse(value.split('º')[0]) -
+                                    1];
+                          } else {
+                            _selectedSemester = null;
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                  onSave: (data) {
+                    if (_selectedCourse == null ||
+                        _selectedTurma == null ||
+                        _selectedSemester == null ||
+                        _selectedPeriodo == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Preencha todos os campos obrigatórios!',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    final groupData = {
+                      'curso': _selectedCourse,
+                      'semestre': _selectedSemester,
+                      'turma': _selectedTurma,
+                      'periodo': _selectedPeriodo,
+                    };
+                    Navigator.pop(context, groupData);
+                  },
+                  onCancel: () => Navigator.pop(context),
+                  customWidget: Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: CustomRadioButton<String>(
+                      label: 'Período',
+                      value: _selectedPeriodo,
+                      groupValue: _selectedPeriodo,
+                      options: _periodos,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPeriodo = value;
+                          if (value != null) {
+                            _selectedSemester = _getSemesterFromPeriod(value);
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ),
           ),
-        ),
-      ),
     );
 
     if (result != null) {
@@ -185,6 +283,7 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
           updatedAt: DateTime.now(),
           courseId: (result['curso'] as Course).id,
           semester: result['semestre'] as Semester,
+          id: null,
         );
         await _groupService.createGroup(groupDTO);
         if (mounted) {
@@ -205,94 +304,126 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
 
   Future<void> _handleEdit(Map<String, dynamic> item) async {
     final GroupDTO originalGroup = item['_original_group_object'] as GroupDTO;
-    Course? selectedCourse = _actualCourses.firstWhere((c) => c.id == originalGroup.courseId);
-    Semester selectedSemester = originalGroup.semester;
-    String selectedTurma = originalGroup.name;
-    String selectedPeriodo = _periodos[0]['value']!;
+    final periodoBanco = _getPeriodFromSemester(originalGroup.semester);
+    print('PERIODO DO BANCO: $periodoBanco');
+    setState(() {
+      _selectedCourse = _actualCourses.firstWhere(
+        (c) => c.id == originalGroup.courseId,
+      );
+      _selectedSemester = originalGroup.semester;
+      _selectedTurma = originalGroup.name;
+      _selectedPeriodo = periodoBanco.toLowerCase();
+      _turmaController.text = originalGroup.name;
+    });
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => CustomFormDialog(
-          title: 'Editar Turma',
-          fields: [
-            CustomFormField(
-              label: 'Curso',
-              isDropdown: true,
-              value: selectedCourse?.name,
-              items: _actualCourses.map((c) => DropdownMenuItem<String>(
-                value: c.name,
-                child: Text(c.name),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCourse = _actualCourses.firstWhere((c) => c.name == value);
-                });
-              },
-            ),
-            CustomFormField(
-              label: 'Turma',
-              isDropdown: true,
-              value: selectedTurma,
-              items: _turmasOpcoes.map((turma) => DropdownMenuItem<String>(
-                value: turma,
-                child: Text(turma),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedTurma = value!;
-                });
-              },
-            ),
-            CustomFormField(
-              label: 'Semestre',
-              isDropdown: true,
-              value: _semesterToLabel(selectedSemester),
-              items: Semester.values.map((s) => DropdownMenuItem<String>(
-                value: _semesterToLabel(s),
-                child: Text(_semesterToLabel(s)),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  if (value != null) {
-                    selectedSemester = Semester.values[int.parse(value.split('º')[0]) - 1];
-                  }
-                });
-              },
-            ),
-          ],
-          onSave: (data) {
-            if (selectedCourse == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Selecione um curso'), backgroundColor: Colors.red),
-              );
-              return;
-            }
-            final groupData = {
-              'curso': selectedCourse,
-              'semestre': selectedSemester,
-              'turma': selectedTurma,
-              'periodo': selectedPeriodo,
-            };
-            Navigator.pop(context, groupData);
-          },
-          onCancel: () => Navigator.pop(context),
-          customWidget: Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: CustomRadioButton<String>(
-              label: 'Período',
-              value: selectedPeriodo,
-              groupValue: selectedPeriodo,
-              options: _periodos,
-              onChanged: (value) {
-                setState(() {
-                  selectedPeriodo = value!;
-                });
-              },
-            ),
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => CustomFormDialog(
+                  title: 'Editar Turma',
+                  fields: [
+                    CustomFormField(
+                      label: 'Curso',
+                      isDropdown: true,
+                      value: _selectedCourse?.name,
+                      items:
+                          _actualCourses
+                              .map(
+                                (c) => DropdownMenuItem<String>(
+                                  value: c.name,
+                                  child: Text(c.name),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCourse = _actualCourses.firstWhere(
+                            (c) => c.name == value,
+                          );
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Turma',
+                      isDropdown: true,
+                      value: _selectedTurma,
+                      items:
+                          _turmasOpcoes
+                              .map(
+                                (turma) => DropdownMenuItem<String>(
+                                  value: turma,
+                                  child: Text(turma),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedTurma = value!;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Semestre',
+                      isDropdown: true,
+                      value: _semesterToLabel(_selectedSemester!),
+                      items:
+                          Semester.values
+                              .map(
+                                (s) => DropdownMenuItem<String>(
+                                  value: _semesterToLabel(s),
+                                  child: Text(_semesterToLabel(s)),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value != null) {
+                            _selectedSemester =
+                                Semester.values[int.parse(value.split('º')[0]) -
+                                    1];
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                  onSave: (data) {
+                    if (_selectedCourse == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Selecione um curso'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    final groupData = {
+                      'curso': _selectedCourse,
+                      'semestre': _selectedSemester,
+                      'turma': _selectedTurma,
+                      'periodo': _selectedPeriodo,
+                    };
+                    Navigator.pop(context, groupData);
+                  },
+                  onCancel: () => Navigator.pop(context),
+                  customWidget: Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: CustomRadioButton<String>(
+                      label: 'Período',
+                      value: _selectedPeriodo,
+                      groupValue: _selectedPeriodo,
+                      options: _periodos,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPeriodo = value;
+                          _selectedSemester = _getSemesterFromPeriod(value!);
+                        });
+                      },
+                    ),
+                  ),
+                ),
           ),
-        ),
-      ),
     );
 
     if (result != null) {
@@ -302,8 +433,9 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
           updatedAt: DateTime.now(),
           courseId: (result['curso'] as Course).id,
           semester: result['semestre'] as Semester,
+          id: originalGroup.id,
         );
-        await _groupService.updateGroup(groupDTO, originalGroup.id);
+        await _groupService.updateGroup(groupDTO, originalGroup.id!);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Turma atualizada com sucesso.')),
@@ -322,29 +454,36 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
 
   void _handleDelete(Map<String, dynamic> item) async {
     final GroupDTO groupToDelete = item['_original_group_object'] as GroupDTO;
-    final String cursoNome = _actualCourses.firstWhere((c) => c.id == groupToDelete.courseId).name;
-    
+    final String cursoNome =
+        _actualCourses.firstWhere((c) => c.id == groupToDelete.courseId).name;
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir a turma "$cursoNome - ${groupToDelete.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar exclusão'),
+            content: Text(
+              'Deseja realmente excluir a turma "$cursoNome - ${groupToDelete.name}"?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
       try {
-        await _groupService.deleteGroup(groupToDelete.id);
+        await _groupService.deleteGroup(groupToDelete.id!);
         _fetchData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -366,13 +505,13 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : CustomCrudScreen(
-            title: 'Turmas',
-            columns: _columns,
-            items: _groupsMapped,
-            fields: const [],
-            onEdit: _handleEdit,
-            onDelete: _handleDelete,
-            onAdd: _handleAdd,
-          );
+          title: 'Turmas',
+          columns: _columns,
+          items: _groupsMapped,
+          fields: const [],
+          onEdit: _handleEdit,
+          onDelete: _handleDelete,
+          onAdd: _handleAdd,
+        );
   }
 }

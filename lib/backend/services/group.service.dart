@@ -31,6 +31,9 @@ class GroupService {
   }
 
   Future<GroupDTO> updateGroup(GroupDTO group, int groupId) async {
+    if (groupId == null) {
+      throw Exception('ID do grupo não pode ser nulo para atualização');
+    }
     final response =
         await supabase
             .from('turma')

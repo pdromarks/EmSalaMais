@@ -2,7 +2,7 @@ import 'package:em_sala_mais/backend/dto/default_dto.dart';
 import 'package:em_sala_mais/backend/model/enums.dart';
 
 class GroupDTO extends DefaultDto {
-  final int id;
+  final int? id;
   final int courseId;
   final Semester semester;
 
@@ -11,7 +11,7 @@ class GroupDTO extends DefaultDto {
     required super.updatedAt,
     required this.courseId,
     required this.semester,
-    this.id = 0,
+    this.id,
   });
 
   factory GroupDTO.fromJson(Map<String, dynamic> json) {
@@ -26,12 +26,15 @@ class GroupDTO extends DefaultDto {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final map = {
       'nome': name,
       'id_curso': courseId,
       'periodo_semestre': semester.name,
       'atualizado_em': updatedAt.toIso8601String(),
     };
+    if (id != null) {
+      map['id'] = id!;
+    }
+    return map;
   }
 }
