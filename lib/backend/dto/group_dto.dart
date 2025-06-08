@@ -3,7 +3,7 @@ import 'package:em_sala_mais/backend/model/enums.dart';
 
 class GroupDTO extends DefaultDto {
   final int? id;
-  final int courseId;
+  final int? courseId;
   final Semester semester;
 
   GroupDTO({
@@ -15,6 +15,7 @@ class GroupDTO extends DefaultDto {
   });
 
   factory GroupDTO.fromJson(Map<String, dynamic> json) {
+    print('DEBUG - JSON recebido para GroupDTO: ' + json.toString());
     return GroupDTO(
       id: json['id'],
       name: json['nome'],

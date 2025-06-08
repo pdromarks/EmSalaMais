@@ -21,4 +21,16 @@ class ScheduleDTO {
       'atualizado_em': updatedAt.toIso8601String(),
     };
   }
+
+  factory ScheduleDTO.fromJson(Map<String, dynamic> json) {
+    print('DEBUG - JSON recebido para ScheduleDTO: ' + json.toString());
+    return ScheduleDTO(
+      scheduleStart: json['horario_inicio'],
+      scheduleEnd: json['horario_fim'],
+      scheduleTime: ScheduleTime.values.byName(json['periodo_hora']),
+      updatedAt: DateTime.parse(
+        json['atualizado_em'] ?? DateTime.now().toIso8601String(),
+      ),
+    );
+  }
 }

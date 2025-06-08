@@ -18,10 +18,27 @@ class Group {
     this.updatedAt,
   });
 
-  factory Group.fromJson(Map<String, dynamic> json) => Group(
-    id: json['id'],
-    name: json['nome'],
-    course: Course.fromJson(json['curso']),
-    semester: Semester.values.byName(json['periodo_semestre']),
-  );
+  factory Group.fromJson(Map<String, dynamic>? json) {
+    print('DEBUG - JSON recebido para Group: ' + json.toString());
+    if (json == null) {
+      return Group(
+        id: 0,
+        name: '',
+        course: Course(id: 0, name: ''),
+        semester: Semester.primeiro,
+      );
+    }
+    return Group(
+      id: json['id'] ?? 0,
+      name: json['nome'] ?? '',
+      course:
+          json['curso'] != null
+              ? Course.fromJson(json['curso'])
+              : Course(id: 0, name: 'Curso Inválido'),
+      semester:
+          json['periodo_semestre'] != null
+              ? Semester.values.byName(json['periodo_semestre'])
+              : Semester.primeiro,
+    );
+  }
 }

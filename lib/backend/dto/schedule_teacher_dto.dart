@@ -1,10 +1,10 @@
 import 'package:em_sala_mais/backend/model/enums.dart';
 
 class ScheduleTeacherDTO {
-  final int scheduleId;
-  final int teacherId;
-  final int groupId;
-  final int subjectId;
+  final int? scheduleId;
+  final int? teacherId;
+  final int? groupId;
+  final int? subjectId;
   final DayOfWeek dayOfWeek;
   final DateTime updatedAt;
 
@@ -18,6 +18,7 @@ class ScheduleTeacherDTO {
   });
 
   factory ScheduleTeacherDTO.fromJson(Map<String, dynamic> json) {
+    print('DEBUG - JSON recebido para ScheduleTeacherDTO: ' + json.toString());
     return ScheduleTeacherDTO(
       scheduleId: json['id_horario'],
       teacherId: json['id_professor'],

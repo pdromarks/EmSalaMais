@@ -39,4 +39,15 @@ class SubjectService {
   Future<void> deleteSubject(int id) async {
     await supabase.from('disciplina').delete().eq('id', id);
   }
+
+  Future<List<Subject>> getSubjectsByTeacher(int teacherId) async {
+    final response = await supabase
+        .from('professor_disciplina')
+        .select('disciplina(*)')
+        .eq('id_professor', teacherId);
+    return response
+        .where((e) => e['disciplina'] != null)
+        .map<Subject>((e) => Subject.fromJson(e['disciplina']))
+        .toList();
+  }
 }

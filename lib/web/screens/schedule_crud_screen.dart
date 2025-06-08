@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import '../../components/widgets/schedule_card.dart';
 import '../../theme/theme.dart';
 import '../../components/screens/custom_form_dialog.dart';
+import '../../backend/services/schedule.service.dart';
+import '../../backend/services/schedule_teacher.service.dart';
+import '../../backend/services/group.service.dart';
+import '../../backend/services/teacher.service.dart';
+import '../../backend/services/subject.service.dart';
+import '../../backend/model/schedule.dart';
+import '../../backend/model/schedule_teacher.dart';
+import '../../backend/model/group.dart';
+import '../../backend/model/teacher.dart';
+import '../../backend/model/subject.dart';
+import '../../backend/dto/schedule_dto.dart';
+import '../../backend/dto/schedule_teacher_dto.dart';
+import '../../backend/model/enums.dart';
+import '../../backend/model/course.dart';
 
 class ScheduleCrudScreen extends StatefulWidget {
   const ScheduleCrudScreen({Key? key}) : super(key: key);
@@ -13,6 +27,20 @@ class ScheduleCrudScreen extends StatefulWidget {
 class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
   final ScrollController _verticalScrollController = ScrollController();
   final ScrollController _horizontalScrollController = ScrollController();
+
+  // Serviços
+  late final ScheduleService _scheduleService;
+  late final ScheduleTeacherService _scheduleTeacherService;
+  late final GroupService _groupService;
+  late final TeacherService _teacherService;
+  late final SubjectService _subjectService;
+
+  // Estado
+  List<ScheduleTeacher> _schedules = [];
+  List<Group> _groups = [];
+  List<Teacher> _teachers = [];
+  List<Subject> _subjectsForDropdown = [];
+  bool _isLoading = true;
 
   final List<String> weekdays = [
     'Segunda',
@@ -26,77 +54,14 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     'Primeira Aula',
     'Segunda Aula',
     'Terceira Aula',
-    'Quarta Aula'
-  ];
-
-  // Dados mockados para exemplo
-  final List<Map<String, dynamic>> schedules = [
-    {
-      'id': '1',
-      'course': 'Engenharia de Software',
-      'semester': '1º Sem',
-      'period': 'Noturno',
-      'className': 'A',
-      'teacher': 'Professor 1',
-      'subject': 'Disciplina 1',
-      'time': 'Primeira Aula',
-      'weekday': 'Segunda'
-    },
-    {
-      'id': '2',
-      'course': 'Ciência da Computação',
-      'semester': '2º Sem',
-      'period': 'Matutino',
-      'className': 'B',
-      'teacher': 'Professor 2',
-      'subject': 'Disciplina 2',
-      'time': 'Segunda Aula',
-      'weekday': 'Terça'
-    },
-     {
-      'id': '3',
-      'course': 'Engenharia Civil',
-      'semester': '5º Sem',
-      'period': 'Noturno',
-      'className': 'C',
-      'teacher': 'Professor 3',
-      'subject': 'Estruturas de Concreto',
-      'time': 'Terceira Aula',
-      'weekday': 'Segunda'
-    },
-  ];
-
-  // Dados mockados para exemplo
-  final List<Map<String, String>> mockClasses = [
-    {
-      'id': '1',
-      'course': 'Engenharia de Software',
-      'semester': '1º Sem',
-      'period': 'Noturno',
-      'className': 'A',
-      'displayName': 'Engenharia de Software - 1º Sem - Turma A'
-    },
-    {
-      'id': '2',
-      'course': 'Ciência da Computação',
-      'semester': '2º Sem',
-      'period': 'Matutino',
-      'className': 'B',
-      'displayName': 'Ciência da Computação - 2º Sem - Turma B'
-    },
-    {
-      'id': '3',
-      'course': 'Engenharia Civil',
-      'semester': '5º Sem',
-      'period': 'Noturno',
-      'className': 'C',
-      'displayName': 'Engenharia Civil - 5º Sem - Turma C'
-    }
+    'Quarta Aula',
   ];
 
   @override
   void initState() {
     super.initState();
+    _initializeServices();
+    _fetchData();
   }
 
   @override
@@ -106,197 +71,366 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     super.dispose();
   }
 
-  void _handleDelete(Map<String, dynamic> schedule) {
+  void _initializeServices() {
+    _scheduleService = ScheduleService();
+    _scheduleTeacherService = ScheduleTeacherService();
+    _groupService = GroupService();
+    _teacherService = TeacherService();
+    _subjectService = SubjectService();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final schedules = await _scheduleTeacherService.getScheduleTeachers();
+      final groups = await _groupService.getGroups();
+      final teachers = await _teacherService.getTeachers();
+
+      setState(() {
+        _schedules =
+            schedules
+                .map((dto) {
+                  final teacher = _teachers.firstWhere(
+                    (t) => t.id == dto.teacherId,
+                    orElse: () => Teacher(id: 0, name: ''),
+                  );
+                  final group = _groups.firstWhere(
+                    (g) => g.id == dto.groupId,
+                    orElse:
+                        () => Group(
+                          id: 0,
+                          name: '',
+                          course: Course(id: 0, name: ''),
+                          semester: Semester.primeiro,
+                        ),
+                  );
+                  if (teacher == null || group == null) return null;
+                  return ScheduleTeacher(
+                    id: 0,
+                    teacher: teacher,
+                    group: group,
+                    schedule: Schedule(
+                      id: dto.scheduleId ?? 0,
+                      scheduleStart: '',
+                      scheduleEnd: '',
+                      scheduleTime: ScheduleTime.primeira,
+                    ),
+                    subject: Subject(id: dto.subjectId ?? 0, name: ''),
+                    dayOfWeek: dto.dayOfWeek,
+                  );
+                })
+                .whereType<ScheduleTeacher>()
+                .toList();
+        _groups = groups.map((g) => Group.fromJson(g.toJson())).toList();
+        _teachers = teachers;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar dados: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Map<String, String> _getHorarios(String aulaLabel, String periodo) {
+    switch (periodo.toLowerCase()) {
+      case 'noturno':
+        return aulaLabel == 'Primeira Aula'
+            ? {'inicio': '19:00', 'fim': '20:40'}
+            : {'inicio': '20:55', 'fim': '22:30'};
+      case 'matutino':
+        return aulaLabel == 'Primeira Aula'
+            ? {'inicio': '07:30', 'fim': '09:10'}
+            : {'inicio': '09:25', 'fim': '11:05'};
+      case 'vespertino':
+        return aulaLabel == 'Primeira Aula'
+            ? {'inicio': '13:30', 'fim': '15:10'}
+            : {'inicio': '15:25', 'fim': '17:05'};
+      default:
+        throw Exception('Período inválido');
+    }
+  }
+
+  Future<void> _handleDelete(ScheduleTeacher schedule) async {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar exclusão'),
-        content: const Text('Deseja realmente excluir este horário?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar exclusão'),
+            content: const Text('Deseja realmente excluir este horário?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await _scheduleTeacherService.deleteScheduleTeacher(
+                      schedule.id,
+                    );
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Horário excluído com sucesso'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    _fetchData();
+                  } catch (e) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir horário: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                schedules.removeWhere((s) => s['id'] == schedule['id']);
-              });
-              Navigator.pop(context);
-            },
-            child: const Text(
-              'Excluir',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Future<void> _showFormDialog([Map<String, dynamic>? initialData]) async {
-    String? selectedClass = initialData?['className'];
-    String? selectedTeacher = initialData?['teacher'] == 'Professor 1' ? '1' : (initialData?['teacher'] == 'Professor 2' ? '2' : '3');
-    String? selectedSubject = initialData?['subject'] == 'Disciplina 1' ? '1' : (initialData?['subject'] == 'Disciplina 2' ? '2' : '3');
-    String? selectedWeekday = initialData?['weekday'];
-    String? selectedTime = initialData?['time'];
-    Map<String, String>? selectedClassData;
-
-    if (selectedClass != null) {
-      selectedClassData = mockClasses.firstWhere(
-        (c) => c['className'] == selectedClass,
-        orElse: () => mockClasses[0], // Ensure there's always a fallback
+  Future<void> _fetchSubjectsForTeacher(int teacherId) async {
+    try {
+      final subjects = await _subjectService.getSubjects();
+      setState(() {
+        _subjectsForDropdown =
+            subjects.where((s) => s.id == teacherId).toList();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar disciplinas: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-    } else if (mockClasses.isNotEmpty) {
-      selectedClassData = mockClasses[0]; // Default if no initial data
-      selectedClass = selectedClassData['className'];
     }
+  }
 
+  Future<void> _showFormDialog([ScheduleTeacher? initialData]) async {
+    int? selectedGroupId = initialData?.group.id;
+    int? selectedTeacherId = initialData?.teacher.id;
+    int? selectedSubjectId = initialData?.subject.id;
+    DayOfWeek? selectedWeekday = initialData?.dayOfWeek as DayOfWeek?;
+    String? selectedTime = initialData?.schedule.scheduleTime.name;
+
+    if (selectedTeacherId != null) {
+      await _fetchSubjectsForTeacher(selectedTeacherId);
+    }
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => CustomFormDialog(
-          title: initialData != null ? 'Editar Horário' : 'Novo Horário',
-          fields: [
-            CustomFormField(
-              label: 'Turma',
-              isDropdown: true,
-              value: selectedClass,
-              items: mockClasses.map((c) => DropdownMenuItem<String>(
-                value: c['className'],
-                child: Text(c['displayName'] ?? ''),
-              )).toList(),
-              onChanged: (value) {
-                setStateDialog(() {
-                  selectedClass = value;
-                  selectedClassData = mockClasses.firstWhere(
-                    (c) => c['className'] == value,
-                    orElse: () => mockClasses[0],
-                  );
-                });
-              },
-            ),
-            CustomFormField(
-              label: 'Professor',
-              isDropdown: true,
-              value: selectedTeacher,
-              items: const [
-                DropdownMenuItem(value: '1', child: Text('Professor 1')),
-                DropdownMenuItem(value: '2', child: Text('Professor 2')),
-                DropdownMenuItem(value: '3', child: Text('Professor 3')),
-              ],
-              onChanged: (value) => setStateDialog(() => selectedTeacher = value),
-            ),
-            CustomFormField(
-              label: 'Disciplina',
-              isDropdown: true,
-              value: selectedSubject,
-              items: const [
-                DropdownMenuItem(value: '1', child: Text('Disciplina 1')),
-                DropdownMenuItem(value: '2', child: Text('Disciplina 2')),
-                DropdownMenuItem(value: '3', child: Text('Estruturas de Concreto')),
-              ],
-              onChanged: (value) => setStateDialog(() => selectedSubject = value),
-            ),
-            CustomFormField(
-              label: 'Dia da Semana',
-              isDropdown: true,
-              value: selectedWeekday,
-              items: weekdays.map((day) => DropdownMenuItem<String>(
-                value: day,
-                child: Text(day),
-              )).toList(),
-              onChanged: (value) => setStateDialog(() => selectedWeekday = value),
-            ),
-            CustomFormField(
-              label: 'Horário',
-              isDropdown: true,
-              value: selectedTime,
-              items: timeSlots.map((time) => DropdownMenuItem<String>(
-                value: time,
-                child: Text(time),
-              )).toList(),
-              onChanged: (value) => setStateDialog(() => selectedTime = value),
-            ),
-          ],
-          onSave: (data) {
-            if (selectedClass == null ||
-                selectedTeacher == null ||
-                selectedSubject == null ||
-                selectedWeekday == null ||
-                selectedTime == null ||
-                selectedClassData == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Por favor, preencha todos os campos'),
-                  backgroundColor: Colors.red,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setStateDialog) => CustomFormDialog(
+                  title:
+                      initialData != null ? 'Editar Horário' : 'Novo Horário',
+                  fields: [
+                    CustomFormField(
+                      label: 'Turma',
+                      isDropdown: true,
+                      value: selectedGroupId?.toString(),
+                      items:
+                          _groups
+                              .map(
+                                (group) => DropdownMenuItem<String>(
+                                  value: group.id.toString(),
+                                  child: Text(
+                                    '${group.course?.name ?? 'Curso Inválido'} - ${_formatSemester(group.semester)} - Turma ${group.name}',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedGroupId = int.parse(value!);
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Professor',
+                      isDropdown: true,
+                      value: selectedTeacherId?.toString(),
+                      items:
+                          _teachers
+                              .map(
+                                (teacher) => DropdownMenuItem<String>(
+                                  value: teacher.id.toString(),
+                                  child: Text(teacher.name),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) async {
+                        setStateDialog(() {
+                          selectedTeacherId = int.parse(value!);
+                          _subjectsForDropdown = [];
+                          selectedSubjectId = null;
+                        });
+                        print('Professor selecionado: $selectedTeacherId');
+                        final subjects = await _subjectService
+                            .getSubjectsByTeacher(selectedTeacherId!);
+                        setStateDialog(() {
+                          _subjectsForDropdown = subjects;
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Disciplina',
+                      isDropdown: true,
+                      value: selectedSubjectId?.toString(),
+                      items:
+                          _subjectsForDropdown
+                              .map(
+                                (subject) => DropdownMenuItem<String>(
+                                  value: subject.id.toString(),
+                                  child: Text(subject.name),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedSubjectId = int.parse(value!);
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Dia da Semana',
+                      isDropdown: true,
+                      value: selectedWeekday?.name,
+                      items:
+                          DayOfWeek.values
+                              .map(
+                                (day) => DropdownMenuItem<String>(
+                                  value: day.name,
+                                  child: Text(day.name),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedWeekday = DayOfWeek.values.byName(value!);
+                        });
+                      },
+                    ),
+                    CustomFormField(
+                      label: 'Horário',
+                      isDropdown: true,
+                      value: selectedTime,
+                      items:
+                          timeSlots
+                              .map(
+                                (time) => DropdownMenuItem<String>(
+                                  value: time,
+                                  child: Text(time),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedTime = value;
+                        });
+                      },
+                    ),
+                  ],
+                  onSave: (data) async {
+                    if (selectedGroupId == null ||
+                        selectedTeacherId == null ||
+                        selectedSubjectId == null ||
+                        selectedWeekday == null ||
+                        selectedTime == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor, preencha todos os campos'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      final selectedGroup = _groups.firstWhere(
+                        (g) => g.id == selectedGroupId,
+                      );
+                      final horarios = _getHorarios(
+                        selectedTime!,
+                        selectedGroup.semester.name,
+                      );
+
+                      final scheduleDTO = ScheduleDTO(
+                        scheduleStart: horarios['inicio']!,
+                        scheduleEnd: horarios['fim']!,
+                        scheduleTime: ScheduleTime.values.byName(selectedTime!),
+                        updatedAt: DateTime.now(),
+                      );
+
+                      if (initialData != null) {
+                        await _scheduleService.updateSchedule(
+                          scheduleDTO,
+                          initialData.schedule.id,
+                        );
+                        await _scheduleTeacherService.updateScheduleTeacher(
+                          ScheduleTeacherDTO(
+                            scheduleId: initialData.schedule.id,
+                            teacherId: selectedTeacherId!,
+                            groupId: selectedGroupId!,
+                            subjectId: selectedSubjectId!,
+                            dayOfWeek: selectedWeekday!,
+                            updatedAt: DateTime.now(),
+                          ),
+                          initialData.id,
+                        );
+                      } else {
+                        final newSchedule = await _scheduleService
+                            .createSchedule(scheduleDTO);
+                        await _scheduleTeacherService.createScheduleTeacher(
+                          ScheduleTeacherDTO(
+                            scheduleId: newSchedule.id,
+                            teacherId: selectedTeacherId!,
+                            groupId: selectedGroupId!,
+                            subjectId: selectedSubjectId!,
+                            dayOfWeek: selectedWeekday!,
+                            updatedAt: DateTime.now(),
+                          ),
+                        );
+                      }
+
+                      Navigator.pop(context, true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            initialData != null
+                                ? 'Horário atualizado com sucesso'
+                                : 'Horário criado com sucesso',
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      _fetchData();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erro ao salvar horário: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  onCancel: () => Navigator.pop(context),
                 ),
-              );
-              return;
-            }
-            
-            String teacherName;
-            switch (selectedTeacher) {
-              case '1':
-                teacherName = 'Professor 1';
-                break;
-              case '2':
-                teacherName = 'Professor 2';
-                break;
-              case '3':
-                teacherName = 'Professor 3';
-                break;
-              default:
-                teacherName = '';
-            }
-
-            String subjectName;
-            switch (selectedSubject) {
-              case '1':
-                subjectName = 'Disciplina 1';
-                break;
-              case '2':
-                subjectName = 'Disciplina 2';
-                break;
-              case '3':
-                subjectName = 'Estruturas de Concreto';
-                break;
-              default:
-                subjectName = '';
-            }
-
-
-            final scheduleData = {
-              'id': initialData?['id'] ?? DateTime.now().toString(),
-              'course': selectedClassData?['course'] ?? '',
-              'semester': selectedClassData?['semester'] ?? '',
-              'period': selectedClassData?['period'] ?? '',
-              'className': selectedClass ?? '',
-              'teacher': teacherName,
-              'subject': subjectName,
-              'time': selectedTime ?? '',
-              'weekday': selectedWeekday ?? '',
-            };
-            Navigator.pop(context, scheduleData);
-          },
-          onCancel: () => Navigator.pop(context),
-        ),
-      ),
+          ),
     );
-
-    if (result != null) {
-      setState(() {
-        if (initialData != null) {
-          final index = schedules.indexWhere((s) => s['id'] == result['id']);
-          if (index != -1) {
-            schedules[index] = result;
-          }
-        } else {
-          schedules.add(result);
-        }
-      });
-    }
   }
 
   Widget _buildWeekdayColumnWithContent(BuildContext context, String weekday) {
@@ -304,45 +438,50 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     final double width = screenSize.width;
     final double fontSize = (width * 0.012).clamp(14.0, 20.0);
 
-    final schedulesForDay = schedules.where((s) => s['weekday'] == weekday).toList();
-    final weekdaySchedulesCards = schedulesForDay
-        .map((schedule) => ScheduleCard(
-              course: schedule['course'],
-              semester: schedule['semester'],
-              period: schedule['period'],
-              className: schedule['className'],
-              teacher: schedule['teacher'],
-              subject: schedule['subject'],
-              time: schedule['time'],
-              onEdit: () => _showFormDialog(schedule),
-              onDelete: () => _handleDelete(schedule),
-            ))
-        .toList();
+    final schedulesForDay =
+        _schedules.where((s) => s.dayOfWeek.name == weekday).toList();
+    final weekdaySchedulesCards =
+        schedulesForDay
+            .map(
+              (schedule) => ScheduleCard(
+                course: schedule.group.course.name,
+                semester: '${schedule.group.semester}º Sem',
+                period: schedule.group.semester.name,
+                className: schedule.group.name,
+                teacher: schedule.teacher.name,
+                subject: schedule.subject.name,
+                time: schedule.schedule.scheduleTime.name,
+                onEdit: () => _showFormDialog(schedule),
+                onDelete: () => _handleDelete(schedule),
+              ),
+            )
+            .toList();
 
     return Container(
-      width: 300, // Fixed width for each weekday column
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // Consistent margin
+      width: 300,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white, // Background for the entire column content area
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 4, // Consistent shadow
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Important for Column inside scrollview
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header part
           Container(
-            width: double.infinity, // Take full width of the 300px container
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
               color: AppColors.verdeUNICV,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -365,26 +504,20 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               ],
             ),
           ),
-          // Content part (cards)
           if (weekdaySchedulesCards.isEmpty)
             Container(
               padding: const EdgeInsets.all(16.0),
               alignment: Alignment.center,
-              constraints: const BoxConstraints(minHeight: 100), // Give some min height to empty message
+              constraints: const BoxConstraints(minHeight: 100),
               child: Text(
                 'Nenhum horário cadastrado',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: fontSize,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: fontSize),
               ),
             )
           else
-            // This Column will allow cards to stack vertically.
-            // The outer vertical SingleChildScrollView will handle its overflow if it's too tall.
             Padding(
-              padding: const EdgeInsets.all(8.0), // Padding around the cards area
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: weekdaySchedulesCards,
@@ -395,12 +528,21 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     );
   }
 
+  // Função auxiliar para formatar semestre
+  String _formatSemester(Semester s) {
+    final idx = Semester.values.indexOf(s) + 1;
+    return '${idx}º Sem';
+  }
 
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
     final double titleFontSize = (width * 0.08).clamp(20.0, 40.0);
+
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
@@ -442,7 +584,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                 scrollDirection: Axis.horizontal,
                 controller: _horizontalScrollController,
                 child: SizedBox(
-                  width: weekdays.length * 320, // Largura fixa para garantir scroll
+                  width: weekdays.length * 320,
                   child: RawScrollbar(
                     thumbVisibility: true,
                     trackVisibility: true,
@@ -453,12 +595,19 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                     child: SingleChildScrollView(
                       controller: _verticalScrollController,
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0, right: 16.0), // Espaço para ambas as barras de scroll
+                        padding: const EdgeInsets.only(
+                          bottom: 16.0,
+                          right: 16.0,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: weekdays.map((day) {
-                            return _buildWeekdayColumnWithContent(context, day);
-                          }).toList(),
+                          children:
+                              weekdays.map((day) {
+                                return _buildWeekdayColumnWithContent(
+                                  context,
+                                  day,
+                                );
+                              }).toList(),
                         ),
                       ),
                     ),
@@ -471,4 +620,4 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       ),
     );
   }
-} 
+}

@@ -1,6 +1,21 @@
 enum Campus { maringa, teste }
 
-enum ScheduleTime { noturno, matutino, vespertino, integral }
+enum Period { noturno, matutino, vespertino, integral }
+
+enum ScheduleTime {
+  primeira,
+  segunda,
+  terceira,
+  quarta,
+  quinta,
+  sexta,
+  setima,
+  oitava,
+  nona,
+  decima,
+  decimaPrimeira,
+  decimaSegunda,
+}
 
 enum Semester {
   primeiro,

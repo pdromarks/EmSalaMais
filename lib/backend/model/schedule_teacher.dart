@@ -27,6 +27,7 @@ class ScheduleTeacher {
 
   @override
   factory ScheduleTeacher.fromJson(Map<String, dynamic> json) {
+    print('DEBUG - JSON para ScheduleTeacher: ' + json.toString());
     return ScheduleTeacher(
       id: json['id'],
       teacher: Teacher.fromJson(json['professor']),
