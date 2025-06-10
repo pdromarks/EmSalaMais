@@ -50,12 +50,16 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     'Sexta',
   ];
 
-  final List<String> timeSlots = ['Primeira Aula', 'Segunda Aula'];
-
-  final Map<String, String> timeSlotToEnumName = {
-    'Primeira Aula': '1',
-    'Segunda Aula': '2',
+  // Mapa para fazer a correspondência entre o nome de exibição e o nome do enum
+  final Map<String, String> weekdayEnumMap = {
+    'Segunda': 'segunda',
+    'Terça': 'terca',
+    'Quarta': 'quarta',
+    'Quinta': 'quinta',
+    'Sexta': 'sexta',
   };
+
+  final List<String> timeSlots = ['Primeira Aula', 'Segunda Aula'];
 
   @override
   void initState() {
@@ -88,47 +92,10 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
       final subjects = await _subjectService.getSubjects();
 
       setState(() {
+        _schedules = schedules;
         _groups = groups;
         _teachers = teachers;
         _subjectsForDropdown = subjects;
-
-        _schedules =
-            schedules.map((dto) {
-              final teacher = teachers.firstWhere(
-                (t) => t.id == dto.teacherId,
-                orElse: () => Teacher(id: 0, name: ''),
-              );
-
-              final group = groups.firstWhere(
-                (g) => g.id == dto.groupId,
-                orElse:
-                    () => Group(
-                      id: 0,
-                      name: '',
-                      course: Course(id: 0, name: ''),
-                      semester: Semester.primeiro,
-                    ),
-              );
-
-              final subject = subjects.firstWhere(
-                (s) => s.id == dto.subjectId,
-                orElse: () => Subject(id: 0, name: ''),
-              );
-
-              return ScheduleTeacher(
-                id: 0, // ID será definido pelo backend
-                teacher: teacher,
-                group: group,
-                schedule: Schedule(
-                  id: dto.scheduleId ?? 0,
-                  scheduleStart: '',
-                  scheduleEnd: '',
-                  scheduleTime: ScheduleTime.primeira,
-                ),
-                subject: subject,
-                dayOfWeek: dto.dayOfWeek,
-              );
-            }).toList();
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -222,15 +189,14 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
 
   Future<void> _fetchSubjectsForTeacher(int teacherId) async {
     try {
-      final subjects = await _subjectService.getSubjects();
+      final subjects = await _subjectService.getSubjectsByTeacher(teacherId);
       setState(() {
-        _subjectsForDropdown =
-            subjects.where((s) => s.id == teacherId).toList();
+        _subjectsForDropdown = subjects;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao carregar disciplinas: $e'),
+          content: Text('Erro ao carregar disciplinas do professor: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -242,196 +208,207 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     int? selectedTeacherId = initialData?.teacher.id;
     int? selectedSubjectId = initialData?.subject.id;
     DayOfWeek? selectedWeekday = initialData?.dayOfWeek as DayOfWeek?;
-    String? selectedTime = initialData?.schedule.scheduleTime.name;
+    String? selectedTime;
+
+    if (initialData != null) {
+      final schedule = initialData.schedule;
+      final isPrimeiraAula = (schedule.scheduleTime == ScheduleTime.primeira);
+      selectedTime = isPrimeiraAula ? 'Primeira Aula' : 'Segunda Aula';
+    }
 
     if (selectedTeacherId != null) {
       await _fetchSubjectsForTeacher(selectedTeacherId);
     }
 
-    final result = await showDialog<Map<String, dynamic>>(
+    await showDialog<void>(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setStateDialog) => CustomFormDialog(
-                  title:
-                      initialData != null ? 'Editar Horário' : 'Novo Horário',
-                  fields: [
-                    CustomFormField(
-                      label: 'Turma',
-                      isDropdown: true,
-                      value: selectedGroupId?.toString(),
-                      items:
-                          _groups
-                              .map(
-                                (group) => DropdownMenuItem<String>(
-                                  value: group.id.toString(),
-                                  child: Text(
-                                    '${group.course.name} - ${_formatSemester(group.semester)} - Turma ${group.name}',
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setStateDialog(() {
-                          selectedGroupId = int.parse(value!);
-                        });
-                      },
-                    ),
-                    CustomFormField(
-                      label: 'Professor',
-                      isDropdown: true,
-                      value: selectedTeacherId?.toString(),
-                      items:
-                          _teachers
-                              .map(
-                                (teacher) => DropdownMenuItem<String>(
-                                  value: teacher.id.toString(),
-                                  child: Text(teacher.name),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) async {
-                        setStateDialog(() {
-                          selectedTeacherId = int.parse(value!);
-                          _subjectsForDropdown = [];
-                          selectedSubjectId = null;
-                        });
-                        print('Professor selecionado: $selectedTeacherId');
-                        final subjects = await _subjectService
-                            .getSubjectsByTeacher(selectedTeacherId!);
-                        setStateDialog(() {
-                          _subjectsForDropdown = subjects;
-                        });
-                      },
-                    ),
-                    CustomFormField(
-                      label: 'Disciplina',
-                      isDropdown: true,
-                      value: selectedSubjectId?.toString(),
-                      items:
-                          _subjectsForDropdown
-                              .map(
-                                (subject) => DropdownMenuItem<String>(
-                                  value: subject.id.toString(),
-                                  child: Text(subject.name),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setStateDialog(() {
-                          selectedSubjectId = int.parse(value!);
-                        });
-                      },
-                    ),
-                    CustomFormField(
-                      label: 'Dia da Semana',
-                      isDropdown: true,
-                      value: selectedWeekday?.name,
-                      items:
-                          DayOfWeek.values
-                              .map(
-                                (day) => DropdownMenuItem<String>(
-                                  value: day.name,
-                                  child: Text(day.name),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setStateDialog(() {
-                          selectedWeekday = DayOfWeek.values.byName(value!);
-                        });
-                      },
-                    ),
-                    CustomFormField(
-                      label: 'Horário',
-                      isDropdown: true,
-                      value: selectedTime,
-                      items:
-                          timeSlots
-                              .map(
-                                (time) => DropdownMenuItem<String>(
-                                  value: time,
-                                  child: Text(time),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setStateDialog(() {
-                          selectedTime = value;
-                        });
-                      },
-                    ),
-                  ],
-                  onSave: (data) async {
-                    if (selectedGroupId == null ||
-                        selectedTeacherId == null ||
-                        selectedSubjectId == null ||
-                        selectedWeekday == null ||
-                        selectedTime == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Por favor, preencha todos os campos'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    try {
-                      final selectedGroup = _groups.firstWhere(
-                        (g) => g.id == selectedGroupId,
-                      );
-                      final horarios = _getHorarios(
-                        selectedTime!,
-                        _getPeriodFromSemester(selectedGroup.semester),
-                      );
-
-                      // Criação direta do ScheduleTeacherDTO, sem criar Schedule
-                      final scheduleTeacherDTO = ScheduleTeacherDTO(
-                        scheduleId: null, // ou algum valor padrão se necessário
-                        teacherId: selectedTeacherId!,
-                        groupId: selectedGroupId!,
-                        subjectId: selectedSubjectId!,
-                        dayOfWeek: selectedWeekday!,
-                        updatedAt: DateTime.now(),
-                      );
-
-                      if (initialData != null) {
-                        await _scheduleTeacherService.updateScheduleTeacher(
-                          scheduleTeacherDTO,
-                          initialData.id,
-                        );
-                      } else {
-                        await _scheduleTeacherService.createScheduleTeacher(
-                          scheduleTeacherDTO,
-                        );
-                      }
-
-                      Navigator.pop(context, true);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            initialData != null
-                                ? 'Horário atualizado com sucesso'
-                                : 'Horário criado com sucesso',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => CustomFormDialog(
+          title:
+              initialData != null ? 'Editar Horário' : 'Novo Horário',
+          fields: [
+            CustomFormField(
+              label: 'Turma',
+              isDropdown: true,
+              value: selectedGroupId?.toString(),
+              items:
+                  _groups
+                      .map(
+                        (group) => DropdownMenuItem<String>(
+                          value: group.id.toString(),
+                          child: Text(
+                            '${group.course.name} - ${_formatSemester(group.semester)} - Turma ${group.name}',
                           ),
-                          backgroundColor: Colors.green,
                         ),
-                      );
-                      _fetchData();
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erro ao salvar horário: $e'),
-                          backgroundColor: Colors.red,
+                      )
+                      .toList(),
+              onChanged: (value) {
+                setStateDialog(() {
+                  selectedGroupId = int.parse(value!);
+                });
+              },
+            ),
+            CustomFormField(
+              label: 'Professor',
+              isDropdown: true,
+              value: selectedTeacherId?.toString(),
+              items:
+                  _teachers
+                      .map(
+                        (teacher) => DropdownMenuItem<String>(
+                          value: teacher.id.toString(),
+                          child: Text(teacher.name),
                         ),
-                      );
-                    }
-                  },
-                  onCancel: () => Navigator.pop(context),
+                      )
+                      .toList(),
+              onChanged: (value) async {
+                setStateDialog(() {
+                  selectedTeacherId = int.parse(value!);
+                });
+                final subjects = await _subjectService
+                    .getSubjectsByTeacher(selectedTeacherId!);
+                setStateDialog(() {
+                  _subjectsForDropdown = subjects;
+                  selectedSubjectId = subjects.first.id;
+                });
+              },
+            ),
+            CustomFormField(
+              label: 'Disciplina',
+              isDropdown: true,
+              value: selectedSubjectId?.toString(),
+              items:
+                  _subjectsForDropdown
+                      .map(
+                        (subject) {
+                          return DropdownMenuItem<String>(
+                            value: subject.id.toString(),
+                            child: Text(subject.name),
+                          );
+                        },
+                      )
+                      .toList(),
+              onChanged: (value) {
+                setStateDialog(() {
+                  selectedSubjectId = int.parse(value!);
+                });
+              },
+            ),
+            CustomFormField(
+              label: 'Dia da Semana',
+              isDropdown: true,
+              value: selectedWeekday?.name,
+              items:
+                  DayOfWeek.values
+                      .map(
+                        (day) => DropdownMenuItem<String>(
+                          value: day.name,
+                          child: Text(
+                            // Formata o nome para exibição (ex: 'terca' -> 'Terça')
+                            day.name[0].toUpperCase() + day.name.substring(1),
+                          ),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (value) {
+                setStateDialog(() {
+                  selectedWeekday = DayOfWeek.values.byName(value!);
+                });
+              },
+            ),
+            CustomFormField(
+              label: 'Horário',
+              isDropdown: true,
+              value: selectedTime,
+              items:
+                  timeSlots
+                      .map(
+                        (time) => DropdownMenuItem<String>(
+                          value: time,
+                          child: Text(time),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (value) {
+                setStateDialog(() {
+                  selectedTime = value;
+                });
+              },
+            ),
+          ],
+          onSave: (data) async {
+            if (selectedGroupId == null ||
+                selectedTeacherId == null ||
+                selectedSubjectId == null ||
+                selectedWeekday == null ||
+                selectedTime == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Por favor, preencha todos os campos'),
+                  backgroundColor: Colors.red,
                 ),
-          ),
+              );
+              return;
+            }
+
+            try {
+              final selectedGroup = _groups.firstWhere((g) => g.id == selectedGroupId);
+              final periodo = _getPeriodFromSemester(selectedGroup.semester);
+              final aulaLabel = selectedTime!;
+              final horarios = _getHorarios(aulaLabel, periodo);
+              final horarioInicio = horarios['inicio']!;
+
+              final scheduleObject = await _scheduleService.findSchedule(periodo, horarioInicio);
+
+              if (scheduleObject == null) {
+                throw Exception(
+                    "Horário para o período '$periodo' às '$horarioInicio' não encontrado no banco.");
+              }
+
+              final scheduleTeacherDTO = ScheduleTeacherDTO(
+                scheduleId: scheduleObject.id,
+                teacherId: selectedTeacherId!,
+                groupId: selectedGroupId!,
+                subjectId: selectedSubjectId!,
+                dayOfWeek: selectedWeekday!,
+                updatedAt: DateTime.now(),
+              );
+
+              if (initialData != null) {
+                await _scheduleTeacherService.updateScheduleTeacher(
+                  scheduleTeacherDTO,
+                  initialData.id,
+                );
+              } else {
+                await _scheduleTeacherService.createScheduleTeacher(
+                  scheduleTeacherDTO,
+                );
+              }
+
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    initialData != null
+                        ? 'Horário atualizado com sucesso'
+                        : 'Horário criado com sucesso',
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              _fetchData();
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro ao salvar horário: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          onCancel: () => Navigator.pop(context),
+        ),
+      ),
     );
   }
 
@@ -440,19 +417,27 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
     final double width = screenSize.width;
     final double fontSize = (width * 0.012).clamp(14.0, 20.0);
 
+    // Usa o mapa para encontrar o nome do enum correspondente ao dia da semana de exibição
+    final String enumDayName = weekdayEnumMap[weekday] ?? '';
+
     final schedulesForDay =
-        _schedules.where((s) => s.dayOfWeek.name == weekday).toList();
+        _schedules.where((s) => s.dayOfWeek.name == enumDayName).toList();
     final weekdaySchedulesCards =
         schedulesForDay
             .map(
               (schedule) => ScheduleCard(
                 course: schedule.group.course.name,
-                semester: '${schedule.group.semester}º Sem',
-                period: schedule.group.semester.name,
+                semester: _formatSemester(schedule.group.semester),
+                period: schedule.schedule.periodoHora.replaceFirstMapped(
+                  RegExp(r'(\w)'),
+                  (match) => match.group(1)!.toUpperCase(),
+                ),
                 className: schedule.group.name,
                 teacher: schedule.teacher.name,
                 subject: schedule.subject.name,
-                time: schedule.schedule.scheduleTime.name,
+                time: schedule.schedule.scheduleTime == ScheduleTime.primeira
+                    ? 'Primeira Aula'
+                    : 'Segunda Aula',
                 onEdit: () => _showFormDialog(schedule),
                 onDelete: () => _handleDelete(schedule),
               ),

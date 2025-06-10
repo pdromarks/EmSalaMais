@@ -41,6 +41,7 @@ class SubjectService {
   }
 
   Future<List<Subject>> getSubjectsByTeacher(int teacherId) async {
+    try{
     final response = await supabase
         .from('professor_disciplina')
         .select('disciplina(*)')
@@ -49,5 +50,9 @@ class SubjectService {
         .where((e) => e['disciplina'] != null)
         .map<Subject>((e) => Subject.fromJson(e['disciplina']))
         .toList();
+    }catch(e){
+      print(e);
+      return [];
+    }
   }
 }

@@ -1,12 +1,15 @@
+import 'package:em_sala_mais/backend/model/schedule_teacher.dart';
 import 'package:em_sala_mais/backend/dto/schedule_teacher_dto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ScheduleTeacherService {
   final supabase = Supabase.instance.client;
 
-  Future<List<ScheduleTeacherDTO>> getScheduleTeachers() async {
-    final response = await supabase.from('horario_professor_turma').select('*');
-    return response.map((json) => ScheduleTeacherDTO.fromJson(json)).toList();
+  Future<List<ScheduleTeacher>> getScheduleTeachers() async {
+    final response = await supabase
+        .from('horario_professor_turma')
+        .select('*, professor(*), turma(*, curso(*)), horario(*), disciplina(*)');
+    return response.map((json) => ScheduleTeacher.fromJson(json)).toList();
   }
 
   Future<ScheduleTeacherDTO> getScheduleTeacher(int id) async {

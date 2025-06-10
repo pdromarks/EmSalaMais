@@ -35,6 +35,7 @@ class ScheduleTeacherDTO {
       'id_professor': teacherId,
       'id_turma': groupId,
       'id_disciplina': subjectId,
+      'dia_semana': dayOfWeek.name,
       'atualizado_em': updatedAt.toIso8601String(),
     };
   }

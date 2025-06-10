@@ -149,37 +149,47 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                     String? currentDropdownValue = _internalFormData[fieldKey] as String?;
                     DropdownValueModel? selectedValueModel;
 
-                    if (currentDropdownValue != null) {
-                      String displayLabel = currentDropdownValue; // Fallback
-                      var matchingItem = field.items?.firstWhere(
-                        (item) => item.value == currentDropdownValue,
-                        orElse: null, // Retorna null se não encontrar
+                    // Garantir que items não seja nulo e tenha elementos
+                    final items = field.items ?? [];
+                    if (items.isEmpty) {
+                      fieldWidget = CustomDropdown(
+                        items: [],
+                        selectedValue: null,
+                        onChanged: (_) {},  // Função vazia que aceita qualquer valor
+                        label: field.label,
+                        dropdownId: fieldKey,
+                        enableSearch: true,
                       );
-                      if (matchingItem != null && matchingItem.child is Text) {
-                        displayLabel = (matchingItem.child as Text).data ?? currentDropdownValue;
+                    } else {
+                      if (currentDropdownValue != null) {
+                        String displayLabel = currentDropdownValue;
+                        var matchingItem = items.firstWhere(
+                          (item) => item.value == currentDropdownValue,
+                          orElse: () => items.first,
+                        );
+                        if (matchingItem.child is Text) {
+                          displayLabel = (matchingItem.child as Text).data ?? currentDropdownValue;
+                        }
+                        selectedValueModel = DropdownValueModel(value: currentDropdownValue, label: displayLabel);
                       }
-                      selectedValueModel = DropdownValueModel(value: currentDropdownValue, label: displayLabel);
-                    }
 
-                    fieldWidget = CustomDropdown(
-                      items: field.items?.map((item) => DropdownValueModel(
-                        value: item.value ?? '',
-                        label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
-                      )).toList() ?? [],
-                      selectedValue: selectedValueModel,
-                      onChanged: (selectedModel) {
-                        setState(() {
-                          _internalFormData[fieldKey] = selectedModel?.value;
-                        });
-                        field.onChanged?.call(selectedModel?.value);
-                      },
-                      label: field.label,
-                      dropdownId: fieldKey, // Usar fieldKey como dropdownId
-                      enableSearch: true, // Assumindo que já estava assim
-                      // Se CustomFormField tiver um ícone e quisermos passá-lo para CustomDropdown,
-                      // CustomDropdown precisaria de um parâmetro para ícone.
-                      // Por ora, o ícone de CustomFormField é usado principalmente por CustomTextField.
-                    );
+                      fieldWidget = CustomDropdown(
+                        items: items.map((item) => DropdownValueModel(
+                          value: item.value ?? '',
+                          label: item.child is Text ? (item.child as Text).data ?? '' : item.child.toString(),
+                        )).toList(),
+                        selectedValue: selectedValueModel,
+                        onChanged: (selectedModel) {
+                          setState(() {
+                            _internalFormData[fieldKey] = selectedModel?.value;
+                          });
+                          field.onChanged?.call(selectedModel?.value);
+                        },
+                        label: field.label,
+                        dropdownId: fieldKey,
+                        enableSearch: true,
+                      );
+                    }
                   } else if (field.isCounter) {
                     fieldWidget = CustomCounter(
                       label: field.label,

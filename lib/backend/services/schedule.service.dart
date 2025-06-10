@@ -39,4 +39,23 @@ class ScheduleService {
   Future<void> deleteSchedule(int id) async {
     await supabase.from('horario').delete().eq('id', id);
   }
+
+  Future<Schedule?> findSchedule(String periodo, String horarioInicio) async {
+    try {
+      final response = await supabase
+          .from('horario')
+          .select('*')
+          .eq('periodo_hora', periodo)
+          .eq('horario_inicio', horarioInicio)
+          .limit(1);
+
+      if (response.isNotEmpty) {
+        return Schedule.fromJson(response.first);
+      }
+      return null;
+    } catch (e) {
+      print("Erro ao buscar horário por período e início: $e");
+      return null;
+    }
+  }
 }
