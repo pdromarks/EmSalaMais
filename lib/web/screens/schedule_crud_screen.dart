@@ -428,7 +428,8 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
               (schedule) => ScheduleCard(
                 course: schedule.group.course.name,
                 semester: _formatSemester(schedule.group.semester),
-                period: schedule.schedule.periodoHora.replaceFirstMapped(
+                period: _getPeriodFromSemester(schedule.group.semester)
+                    .replaceFirstMapped(
                   RegExp(r'(\w)'),
                   (match) => match.group(1)!.toUpperCase(),
                 ),
@@ -522,31 +523,23 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
   }
 
   String _getPeriodFromSemester(Semester s) {
-    // Implemente a lógica para mapear o semestre para o período correto
-    // Este é um exemplo básico e pode ser melhorado com uma lógica mais robusta
+    // Mapeamento do semestre para o período
     switch (s) {
       case Semester.primeiro:
-        return 'matutino';
       case Semester.segundo:
-        return 'vespertino';
+        return 'matutino';
       case Semester.terceiro:
-        return 'vespertino';
       case Semester.quarto:
         return 'vespertino';
       case Semester.quinto:
-        return 'vespertino';
       case Semester.sexto:
-        return 'vespertino';
       case Semester.setimo:
-        return 'vespertino';
       case Semester.oitavo:
-        return 'vespertino';
       case Semester.nono:
-        return 'vespertino';
       case Semester.decimo:
-        return 'vespertino';
+        return 'noturno';
       default:
-        throw Exception('Semestre inválido: $s');
+        return 'noturno'; // Valor padrão
     }
   }
 
