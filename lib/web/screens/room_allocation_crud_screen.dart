@@ -317,99 +317,117 @@ class _RoomAllocationCrudScreenState extends State<RoomAllocationCrudScreen> {
     final DateFormat formatter = DateFormat('dd/MM/yyyy');
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 800;
+    final double fieldWidth = isSmallScreen ? (screenSize.width / 2) - 12 : 200;
 
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
-      alignment: WrapAlignment.start,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Filtros
-        SizedBox(
-          width: isSmallScreen ? (screenSize.width / 2) - 12 : 200,
-          child: CustomDropdown(
-            label: 'Período',
-            items: _periodos,
-            selectedValue:
-                _periodos.firstWhereOrNull((p) => p.value == _selectedPeriodo),
-            onChanged: (val) => setState(() {
-              _selectedPeriodo = val?.value;
-              _applyFilters();
-            }),
-            dropdownId: 'periodo_filter',
-          ),
-        ),
-        SizedBox(
-          width: isSmallScreen ? (screenSize.width / 2) - 12 : 200,
-          child: CustomDropdown(
-            label: 'Horário',
-            items: _horarios,
-            selectedValue: _horarios
-                .firstWhereOrNull((h) => h.value == _selectedHorario?.name),
-            onChanged: (val) => setState(() {
-              _selectedHorario =
-                  val != null ? ScheduleTime.values.byName(val.value) : null;
-              _applyFilters();
-            }),
-            dropdownId: 'horario_filter',
-          ),
-        ),
-        SizedBox(
-          width: isSmallScreen ? (screenSize.width / 2) - 12 : 200,
-          child: CustomDropdown(
-            label: 'Bloco',
-            items: _allBlocos
-                .map((b) => DropdownValueModel(value: b.id.toString(), label: b.name))
-                .toList(),
-            selectedValue: _allBlocos
-                .map((b) => DropdownValueModel(value: b.id.toString(), label: b.name))
-                .firstWhereOrNull((d) => d.value == _selectedBlocoId.toString()),
-            onChanged: (val) => setState(() {
-              _selectedBlocoId = val != null ? int.tryParse(val.value) : null;
-              _applyFilters();
-            }),
-            dropdownId: 'bloco_filter',
-            showClearButton: true, // Habilita o botão de limpar
-          ),
-        ),
-
-        // Botão de Data
-        if (isSmallScreen) const SizedBox(width: double.infinity, height: 4),
-        InkWell(
-          onTap: () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: _selectedDate ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            if (picked != null && picked != _selectedDate) {
-              setState(() {
-                _selectedDate = picked;
-                _applyFilters();
-              });
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                border: Border.all(color: AppColors.verdeUNICV.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(20)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.calendar_today, color: AppColors.verdeUNICV, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  _selectedDate != null
-                      ? formatter.format(_selectedDate!)
-                      : 'N/A',
-                  style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.verdeUNICV,
-                      fontWeight: FontWeight.w600),
+        Expanded(
+          child: Wrap(
+            spacing: 8.0,
+            runSpacing: 12.0,
+            children: [
+              SizedBox(
+                width: fieldWidth,
+                child: CustomDropdown(
+                  label: 'Período',
+                  items: _periodos,
+                  selectedValue:
+                      _periodos.firstWhereOrNull((p) => p.value == _selectedPeriodo),
+                  onChanged: (val) => setState(() {
+                    _selectedPeriodo = val?.value;
+                    _applyFilters();
+                  }),
+                  dropdownId: 'periodo_filter',
                 ),
-              ],
+              ),
+              SizedBox(
+                width: fieldWidth,
+                child: CustomDropdown(
+                  label: 'Horário',
+                  items: _horarios,
+                  selectedValue: _horarios
+                      .firstWhereOrNull((h) => h.value == _selectedHorario?.name),
+                  onChanged: (val) => setState(() {
+                    _selectedHorario =
+                        val != null ? ScheduleTime.values.byName(val.value) : null;
+                    _applyFilters();
+                  }),
+                  dropdownId: 'horario_filter',
+                ),
+              ),
+              SizedBox(
+                width: fieldWidth,
+                child: CustomDropdown(
+                  label: 'Bloco',
+                  items: _allBlocos
+                      .map((b) => DropdownValueModel(value: b.id.toString(), label: b.name))
+                      .toList(),
+                  selectedValue: _allBlocos
+                      .map((b) => DropdownValueModel(value: b.id.toString(), label: b.name))
+                      .firstWhereOrNull((d) => d.value == _selectedBlocoId.toString()),
+                  onChanged: (val) => setState(() {
+                    _selectedBlocoId = val != null ? int.tryParse(val.value) : null;
+                    _applyFilters();
+                  }),
+                  dropdownId: 'bloco_filter',
+                  showClearButton: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 180,
+          child: InkWell(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null && picked != _selectedDate) {
+                setState(() {
+                  _selectedDate = picked;
+                  _applyFilters();
+                });
+              }
+            },
+            borderRadius: BorderRadius.circular(20.0),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'Data',
+                labelStyle: const TextStyle(
+                  color: AppColors.verdeUNICV,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.verdeUNICV, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.verdeUNICV, width: 2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selectedDate != null ? formatter.format(_selectedDate!) : '',
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.calendar_today, color: AppColors.verdeUNICV, size: 24),
+                ],
+              ),
             ),
           ),
         ),
