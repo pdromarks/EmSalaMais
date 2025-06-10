@@ -233,7 +233,6 @@ class _CustomDropdownState extends State<CustomDropdown> {
                       tooltip: 'Limpar seleção',
                       onPressed: () {
                         widget.onChanged(null);
-                        _toggleOverlay();
                       },
                     ),
                   Padding(

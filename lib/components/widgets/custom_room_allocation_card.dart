@@ -207,59 +207,42 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox(
-        width: 340.0,
-        height: 330.0,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Topo: Nome da sala e bloco
-              _buildRoomHeaderInfo(fontSize),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Topo: Nome da sala, bloco e características
+            _buildRoomHeaderInfo(fontSize),
+            const SizedBox(height: 12),
+            _buildRoomFeatureInfo(fontSize),
+            
+            const Spacer(), // Ocupa o espaço flexível
 
-              // Meio: Espaço vazio para empurrar a base para baixo
-              const Spacer(),
-
-              // Base: Características, Dropdown de alocação e detalhes
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildRoomFeatureInfo(fontSize),
-                  const SizedBox(height: 12),
-                  CustomDropdown(
-                    label: _selectedClass == null ? 'Alocar Turma' : 'Turma Alocada',
-                    items: widget.availableClasses,
-                    selectedValue: _selectedClass,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedClass = newValue;
-                      });
-                      widget.onClassSelected(widget.roomId, newValue);
-                    },
-                    dropdownId: 'class_allocation_${widget.roomId}',
-                    fontSize: fontSize * 0.95,
-                    enableSearch: widget.enableClassSearch,
-                    showClearButton: widget.allowClear,
-                  ),
-                  const SizedBox(height: 8),
-                  if (widget.allocatedClassDetails != null)
-                    _buildAllocatedClassDetails(fontSize, widget.allocatedClassDetails!)
-                  else if (_selectedClass != null && widget.allocatedClassDetails == null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Selecione para carregar detalhes...',
-                        style: TextStyle(color: Colors.grey, fontSize: fontSize * 0.85),
-                      ),
-                    ),
-                ],
+            // Base: Dropdown e detalhes da turma alocada
+            CustomDropdown(
+              label: _selectedClass == null ? 'Alocar Turma' : 'Turma Alocada',
+              items: widget.availableClasses,
+              selectedValue: _selectedClass,
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedClass = newValue;
+                });
+                widget.onClassSelected(widget.roomId, newValue);
+              },
+              dropdownId: 'class_allocation_${widget.roomId}',
+              fontSize: fontSize * 0.95,
+              enableSearch: widget.enableClassSearch,
+              showClearButton: widget.allowClear,
+            ),
+            
+            // A altura do card vai se ajustar dinamicamente
+            if (widget.allocatedClassDetails != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: _buildAllocatedClassDetails(fontSize, widget.allocatedClassDetails!),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
