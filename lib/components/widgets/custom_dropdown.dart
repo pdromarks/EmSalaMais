@@ -51,6 +51,7 @@ class CustomDropdown extends StatefulWidget {
   final String? openDropdownId;
   final String dropdownId;
   final bool enableSearch;
+  final bool showClearButton;
 
   const CustomDropdown({
     super.key,
@@ -66,6 +67,7 @@ class CustomDropdown extends StatefulWidget {
     this.openDropdownId,
     required this.dropdownId,
     this.enableSearch = false,
+    this.showClearButton = false,
   });
 
   @override
@@ -221,6 +223,19 @@ class _CustomDropdownState extends State<CustomDropdown> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (widget.selectedValue != null && widget.showClearButton)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      iconSize: widget.iconSize ?? 20,
+                      color: Colors.grey[600],
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Limpar seleção',
+                      onPressed: () {
+                        widget.onChanged(null);
+                        _toggleOverlay();
+                      },
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: Icon(

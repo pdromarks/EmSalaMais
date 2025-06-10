@@ -5,32 +5,43 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class RoomAllocationService {
   final supabase = Supabase.instance.client;
 
+  static const String _selectQuery =
+      '*, sala(*, bloco(*)), horario_professor_turma(*, horario(*), professor(*), turma(*, curso(*)), disciplina(*))';
+
   Future<List<RoomAllocation>> getRoomAllocations() async {
-    final response = await supabase.from('emsalamento').select('*');
-    return response.map((json) => RoomAllocation.fromJson(json)).toList();
+    final response = await supabase.from('emsalamento').select(_selectQuery);
+
+    final allocations = <RoomAllocation>[];
+    for (final json in response) {
+      if (json['sala'] != null && json['horario_professor_turma'] != null) {
+        allocations.add(RoomAllocation.fromJson(json));
+      }
+    }
+    return allocations;
   }
 
   Future<RoomAllocation> getRoomAllocation(int id) async {
     final response = await supabase
         .from('emsalamento')
-        .select('*, horario_professor_turma(*)')
-        .eq('id', id);
-    return RoomAllocation.fromJson(response.first);
+        .select(_selectQuery)
+        .eq('id', id)
+        .single();
+    return RoomAllocation.fromJson(response);
   }
 
   Future<RoomAllocation> createRoomAllocation(
     RoomAllocationDTO roomAllocation,
   ) async {
     try {
-      final List<Map<String, dynamic>> response =
-          await supabase
-              .from('emsalamento')
-              .insert(roomAllocation.toJson())
-              .select();
+      final response = await supabase
+          .from('emsalamento')
+          .insert(roomAllocation.toJson())
+          .select(_selectQuery)
+          .single();
 
-      return RoomAllocation.fromJson(response.first);
+      return RoomAllocation.fromJson(response);
     } catch (e) {
-      throw Exception("Erro ao criar o grupo: $e");
+      throw Exception("Erro ao criar o alocamento: $e");
     }
   }
 
@@ -38,13 +49,13 @@ class RoomAllocationService {
     RoomAllocationDTO roomAllocation,
     int roomAllocationId,
   ) async {
-    final response =
-        await supabase
-            .from('emsalamento')
-            .update(roomAllocation.toJson())
-            .eq('id', roomAllocationId)
-            .select();
-    return RoomAllocation.fromJson(response.first);
+    final response = await supabase
+        .from('emsalamento')
+        .update(roomAllocation.toJson())
+        .eq('id', roomAllocationId)
+        .select(_selectQuery)
+        .single();
+    return RoomAllocation.fromJson(response);
   }
 
   Future<void> deleteRoomAllocation(int id) async {

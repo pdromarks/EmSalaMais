@@ -34,6 +34,10 @@ class CustomRoomAllocationCard extends StatefulWidget {
   final AllocatedClassDetails? allocatedClassDetails; 
   // Valor selecionado para o dropdown de turma
   final DropdownValueModel? selectedClassValue;
+  // Habilita a busca no dropdown de turmas
+  final bool enableClassSearch;
+  // Permite limpar a seleção da turma
+  final bool allowClear;
 
   const CustomRoomAllocationCard({
     Key? key,
@@ -47,6 +51,8 @@ class CustomRoomAllocationCard extends StatefulWidget {
     required this.onClassSelected,
     this.allocatedClassDetails,
     this.selectedClassValue,
+    this.enableClassSearch = false,
+    this.allowClear = false,
   }) : super(key: key);
 
   @override
@@ -235,6 +241,8 @@ class _CustomRoomAllocationCardState extends State<CustomRoomAllocationCard> {
                     },
                     dropdownId: 'class_allocation_${widget.roomId}',
                     fontSize: fontSize * 0.95,
+                    enableSearch: widget.enableClassSearch,
+                    showClearButton: widget.allowClear,
                   ),
                   const SizedBox(height: 8),
                   if (widget.allocatedClassDetails != null)
