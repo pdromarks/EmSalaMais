@@ -237,7 +237,7 @@ class _ScheduleCrudScreenState extends State<ScheduleCrudScreen> {
                         (group) => DropdownMenuItem<String>(
                           value: group.id.toString(),
                           child: Text(
-                            '${group.course.name} - ${_formatSemester(group.semester)} - Turma ${group.name}',
+                            '${group.course.name} - ${_formatSemester(group.semester)} - Turma ${group.name} - ${_getPeriodFromSemester(group.semester).replaceFirstMapped(RegExp(r'(\w)'), (m) => m.group(1)!.toUpperCase())}',
                           ),
                         ),
                       )

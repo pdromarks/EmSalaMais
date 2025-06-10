@@ -32,4 +32,4 @@ enum Semester {
   decimoSegundo,
 }
 
-enum DayOfWeek { domingo, segunda, terca, quarta, quinta, sexta, sabado }
+enum DayOfWeek { segunda, terca, quarta, quinta, sexta}
