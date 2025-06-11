@@ -66,7 +66,12 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
     });
   }
 
-  Widget _buildAllocationCard(String subject, String room, String teacher, String time) {
+  Widget _buildAllocationCard(
+    String subject,
+    String room,
+    String teacher,
+    String time,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -138,7 +143,7 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
     final double height = screenSize.height;
-    
+
     final double horizontalPadding = width * 0.08;
     final double verticalSpacing = height * 0.02;
     final double inputFontSize = (width * 0.04).clamp(14.0, 18.0);
@@ -173,7 +178,6 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
                 setState(() {
                   _selectedTurma = value;
                   _openDropdownId = null;
-                  print('Turma selecionada: ${_selectedTurma?.label}');
                 });
               },
               width: width * 0.84,
@@ -197,7 +201,9 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
             ),
             const SizedBox(height: 12.0),
             _buildAllocationCard(
-              _selectedTurma != null ? 'Mat. Discreta (${_selectedTurma!.label})' : 'Mat. Discreta',
+              _selectedTurma != null
+                  ? 'Mat. Discreta (${_selectedTurma!.label})'
+                  : 'Mat. Discreta',
               'Sala 202',
               'Prof. Dr. Carlos Andrade',
               '08:00 - 09:40',
@@ -217,7 +223,9 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
             ),
             const SizedBox(height: 12.0),
             _buildAllocationCard(
-              _selectedTurma != null ? 'Proj. Interdisciplinar (${_selectedTurma!.label})' : 'Proj. Interdisciplinar',
+              _selectedTurma != null
+                  ? 'Proj. Interdisciplinar (${_selectedTurma!.label})'
+                  : 'Proj. Interdisciplinar',
               'Lab. Robótica',
               'Profa. Dra. Ana Beatriz',
               '10:00 - 11:40',

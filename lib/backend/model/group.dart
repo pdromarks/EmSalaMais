@@ -19,7 +19,6 @@ class Group {
   });
 
   factory Group.fromJson(Map<String, dynamic>? json) {
-    print('DEBUG - JSON recebido para Group: ' + json.toString());
     if (json == null) {
       return Group(
         id: 0,

@@ -15,6 +15,7 @@ class UserService {
 
       return userData;
     } catch (e) {
+      print(e);
       throw AuthException("Erro ao realizar o cadastro");
     }
   }

@@ -316,7 +316,6 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
   Future<void> _handleEdit(Map<String, dynamic> item) async {
     final GroupDTO originalGroup = item['_original_group_object'] as GroupDTO;
     final periodoBanco = _getPeriodFromSemester(originalGroup.semester);
-    print('PERIODO DO BANCO: $periodoBanco');
     setState(() {
       _selectedCourse = _actualCourses.firstWhere(
         (c) => c.id == originalGroup.courseId,

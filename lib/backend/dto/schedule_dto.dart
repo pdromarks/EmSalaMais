@@ -35,8 +35,6 @@ class ScheduleDTO {
   }
 
   factory ScheduleDTO.fromJson(Map<String, dynamic> json) {
-    print('DEBUG - JSON recebido para ScheduleDTO: ' + json.toString());
-
     String periodoHoraFromDB = (json['periodo_hora'] as String);
     String enumName = periodoHoraFromDB.replaceAll('_AULA', '').toLowerCase();
 

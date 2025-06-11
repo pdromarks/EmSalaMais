@@ -15,7 +15,6 @@ class GroupDTO extends DefaultDto {
   });
 
   factory GroupDTO.fromJson(Map<String, dynamic> json) {
-    print('DEBUG - JSON recebido para GroupDTO: ' + json.toString());
     return GroupDTO(
       id: json['id'],
       name: json['nome'],

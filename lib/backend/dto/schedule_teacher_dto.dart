@@ -18,7 +18,6 @@ class ScheduleTeacherDTO {
   });
 
   factory ScheduleTeacherDTO.fromJson(Map<String, dynamic> json) {
-    print('DEBUG - JSON recebido para ScheduleTeacherDTO: ' + json.toString());
     return ScheduleTeacherDTO(
       scheduleId: json['id_horario'],
       teacherId: json['id_professor'],
