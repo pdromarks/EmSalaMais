@@ -3,7 +3,6 @@ import '../../theme/theme.dart';
 
 class CustomTextField extends StatefulWidget {
   final String label;
-  final bool isPassword;
   final TextEditingController? controller;
   final Color? labelColor;
   final Color? borderColor;
@@ -15,11 +14,13 @@ class CustomTextField extends StatefulWidget {
   final IconData? prefixIcon;
   final Color? iconColor;
   final double? iconSize;
+  final bool obscureText;
+  final Widget? suffixIcon;
+  final TextInputType? keyboardType;
 
   const CustomTextField({
     super.key,
     required this.label,
-    this.isPassword = false,
     this.controller,
     this.labelColor,
     this.borderColor,
@@ -31,6 +32,9 @@ class CustomTextField extends StatefulWidget {
     this.prefixIcon,
     this.iconColor,
     this.iconSize,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.keyboardType,
   });
 
   @override
@@ -38,8 +42,6 @@ class CustomTextField extends StatefulWidget {
 }
 
 class _CustomTextFieldState extends State<CustomTextField> {
-  bool _obscureText = true;
-
   @override
   Widget build(BuildContext context) {
     // Obtém o tamanho da tela para cálculos responsivos
@@ -81,7 +83,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
       ),
       child: TextField(
         controller: widget.controller,
-        obscureText: widget.isPassword ? _obscureText : false,
+        obscureText: widget.obscureText,
+        keyboardType: widget.keyboardType,
         style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize),
         decoration: InputDecoration(
           labelText: widget.label,
@@ -126,21 +129,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     size: widget.iconSize ?? defaultIconSize,
                   )
                   : null,
-          suffixIcon:
-              widget.isPassword
-                  ? IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility_off : Icons.visibility,
-                      color: widget.iconColor ?? Colors.grey,
-                      size: widget.iconSize ?? defaultIconSize,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureText = !_obscureText;
-                      });
-                    },
-                  )
-                  : null,
+          suffixIcon: widget.suffixIcon,
         ),
       ),
     );

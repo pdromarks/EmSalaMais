@@ -1,12 +1,19 @@
 import 'package:em_sala_mais/backend/services/user.service.dart';
-import 'package:em_sala_mais/web/screens/404.dart';
+import 'package:em_sala_mais/web/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import '../../components/widgets/custom_tf.dart';
 import '../../components/widgets/custom_btn.dart';
 import '../../../../theme/theme.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _isPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +96,7 @@ class LoginScreen extends StatelessWidget {
                             SizedBox(height: verticalSpacing),
                             CustomTextField(
                               label: 'Senha',
-                              isPassword: true,
+                              obscureText: !_isPasswordVisible,
                               borderColor: AppColors.ciano,
                               labelColor: AppColors.ciano,
                               prefixIcon: Icons.lock,
@@ -98,6 +105,20 @@ class LoginScreen extends StatelessWidget {
                               height: height * 0.065,
                               fontSize: regularFontSize,
                               controller: passwordController,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isPasswordVisible
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: AppColors.ciano,
+                                  size: iconSize,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                              ),
                             ),
                             SizedBox(height: 25),
                             Align(
@@ -165,12 +186,7 @@ class LoginScreen extends StatelessWidget {
                                     password,
                                     email,
                                   );
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ManuntencaoScreen(),
-                                    ),
-                                  );
+                                  Navigator.pushReplacementNamed(context, '/home');
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -236,7 +252,7 @@ class LoginScreen extends StatelessWidget {
                             SizedBox(height: verticalSpacing),
                             CustomTextField(
                               label: 'Senha',
-                              isPassword: true,
+                              obscureText: !_isPasswordVisible,
                               borderColor: AppColors.ciano,
                               labelColor: AppColors.ciano,
                               prefixIcon: Icons.lock,
@@ -247,6 +263,20 @@ class LoginScreen extends StatelessWidget {
                               maxWidth: 400,
                               fontSize: regularFontSize,
                               controller: passwordController,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isPasswordVisible
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: AppColors.ciano,
+                                  size: iconSize,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                              ),
                             ),
                             SizedBox(height: 25),
                             Align(
@@ -270,16 +300,29 @@ class LoginScreen extends StatelessWidget {
                               onPressed: () async {
                                 String email = emailController.text;
                                 String password = passwordController.text;
-
-                                var response = await UserService().signIn(
-                                  password,
-                                  email,
-                                );
+                                try {
+                                  var response = await UserService().signIn(
+                                    password,
+                                    email,
+                                  );
+                                  Navigator.pushReplacementNamed(context, '/home');
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Login inválido. Verifique suas credenciais.',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                      duration: Duration(seconds: 3),
+                                    ),
+                                  );
+                                  print(e);
+                                }
                               },
                               backgroundColor: AppColors.ciano,
-                              width: isDesktop ? width * 0.25 : width * 0.35,
+                              width: isDesktop ? 150 : width * 0.45,
                               maxWidth: 180,
-                              height: height * 0.065,
+                              height: isDesktop ? 50 : height * 0.065,
                               fontSize: buttonFontSize,
                             ),
                           ],

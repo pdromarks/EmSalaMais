@@ -63,6 +63,7 @@ class CustomFormDialog extends StatefulWidget {
 
 class _CustomFormDialogState extends State<CustomFormDialog> {
   late Map<String, dynamic> _internalFormData;
+  Map<String, bool> _passwordVisibility = {};
 
   @override
   void initState() {
@@ -72,7 +73,9 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
     for (var field in widget.fields) {
       String fieldKey = field.label; // Usar field.label como chave única para o mapa
 
-      if (field.isDropdown) {
+      if (field.isPassword) {
+        _passwordVisibility[fieldKey] = false;
+      } else if (field.isDropdown) {
         _internalFormData[fieldKey] = field.value;
       } else if (field.isCounter) {
         _internalFormData[fieldKey] = field.counterValue;
@@ -237,7 +240,23 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                       prefixIcon: field.icon,
                       iconColor: AppColors.verdeUNICV,
                       iconSize: iconSize,
-                      isPassword: field.isPassword,
+                      obscureText: field.isPassword && !(_passwordVisibility[fieldKey] ?? false),
+                      suffixIcon: field.isPassword
+                          ? IconButton(
+                              icon: Icon(
+                                (_passwordVisibility[fieldKey] ?? false)
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: AppColors.verdeUNICV,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _passwordVisibility[fieldKey] =
+                                      !(_passwordVisibility[fieldKey] ?? false);
+                                });
+                              },
+                            )
+                          : null,
                     );
                   }
 

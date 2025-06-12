@@ -46,11 +46,17 @@ class CustomFormDialog extends StatefulWidget {
 
 class _CustomFormDialogState extends State<CustomFormDialog> {
   bool _switchValue = true;
+  Map<String, bool> _passwordVisibility = {};
 
   @override
   void initState() {
     super.initState();
     _switchValue = widget.initialData?['ativo'] ?? widget.initialSwitchValue;
+    for (var field in widget.fields) {
+      if (field.isPassword) {
+        _passwordVisibility[field.label] = false;
+      }
+    }
   }
 
   @override
@@ -126,7 +132,23 @@ class _CustomFormDialogState extends State<CustomFormDialog> {
                       prefixIcon: field.icon,
                       iconColor: AppColors.verdeUNICV,
                       iconSize: iconSize,
-                      isPassword: field.isPassword,
+                      obscureText: field.isPassword && !(_passwordVisibility[field.label] ?? false),
+                      suffixIcon: field.isPassword
+                          ? IconButton(
+                              icon: Icon(
+                                (_passwordVisibility[field.label] ?? false)
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: AppColors.verdeUNICV,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _passwordVisibility[field.label] =
+                                      !(_passwordVisibility[field.label] ?? false);
+                                });
+                              },
+                            )
+                          : null,
                     ),
                     SizedBox(height: height * 0.02),
                   ],
