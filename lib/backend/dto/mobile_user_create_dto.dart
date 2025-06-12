@@ -1,11 +1,9 @@
 class MobileUserCreateDTO {
+  final int idGroup;
   final String email;
   final String password;
-  final int idGroup;
+  final String? name;
 
-  MobileUserCreateDTO({
-    required this.email,
-    required this.password,
-    required this.idGroup,
-  });
+  MobileUserCreateDTO(
+      {required this.idGroup, required this.email, required this.password, this.name});
 }

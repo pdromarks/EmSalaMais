@@ -1,4 +1,11 @@
+import 'package:em_sala_mais/backend/services/mobile_user.service.dart';
+import 'package:em_sala_mais/backend/services/group.service.dart';
+import 'package:em_sala_mais/backend/model/group.dart';
+import 'package:em_sala_mais/backend/model/course.dart';
+import 'package:em_sala_mais/backend/model/enums.dart';
+import 'package:em_sala_mais/mobile/screens/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../components/widgets/custom_tf.dart';
 import '../../components/widgets/custom_btn.dart';
 import '../../components/widgets/custom_dropdown.dart';
@@ -12,242 +19,410 @@ class AcademicDataScreen extends StatefulWidget {
 }
 
 class _AcademicDataScreenState extends State<AcademicDataScreen> {
+  final _groupService = GroupService();
+  final _mobileUserService = MobileUserService();
+  final _supabase = Supabase.instance.client;
+
+  final _nameController = TextEditingController();
+  bool _isLoading = true;
+  String? _error;
+
+  // Lista completa de turmas do banco
+  List<Group> _allGroups = [];
+  
+  // Listas para os dropdowns
+  List<DropdownValueModel> _cursos = [];
+  List<DropdownValueModel> _semestres = [];
+  List<DropdownValueModel> _periodos = [];
+  List<DropdownValueModel> _turmas = [];
+
+  // Valores selecionados
   DropdownValueModel? selectedCurso;
   DropdownValueModel? selectedSemestre;
-  DropdownValueModel? selectedTurno;
+  DropdownValueModel? selectedPeriodo;
   DropdownValueModel? selectedTurma;
   String? openDropdown;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      // Busca todas as turmas do banco
+      final groups = await _groupService.getGroups();
+      setState(() {
+        _allGroups = groups;
+        
+        // Popula apenas o dropdown de cursos inicialmente
+        final cursosMap = groups.map((g) => g.course).toSet().toList();
+        _cursos = cursosMap.map((c) => 
+          DropdownValueModel(
+            value: c.id.toString(),
+            label: c.name,
+          )
+        ).toList();
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Atualiza os semestres disponíveis quando um curso é selecionado
+  void _updateSemestres(DropdownValueModel? curso) {
+    setState(() {
+      selectedCurso = curso;
+      // Reseta as seleções seguintes
+      selectedSemestre = null;
+      selectedPeriodo = null;
+      selectedTurma = null;
+      _semestres = [];
+      _periodos = [];
+      _turmas = [];
+
+      if (curso == null) return;
+
+      // Filtra os semestres disponíveis para o curso selecionado
+      final semestresDisponiveis = _allGroups
+          .where((g) => g.course.id.toString() == curso.value)
+          .map((g) => g.semester)
+          .toSet()
+          .toList();
+
+      _semestres = semestresDisponiveis.map((s) {
+        final idx = Semester.values.indexOf(s) + 1;
+        return DropdownValueModel(
+          value: s.name,
+          label: '${idx}º Semestre',
+        );
+      }).toList();
+    });
+  }
+
+  // Atualiza os períodos disponíveis quando um semestre é selecionado
+  void _updatePeriodos(DropdownValueModel? semestre) {
+    setState(() {
+      selectedSemestre = semestre;
+      // Reseta as seleções seguintes
+      selectedPeriodo = null;
+      selectedTurma = null;
+      _periodos = [];
+      _turmas = [];
+
+      if (semestre == null || selectedCurso == null) return;
+
+      // Filtra os períodos disponíveis para o curso e semestre selecionados
+      final periodosDisponiveis = _allGroups
+          .where((g) => 
+            g.course.id.toString() == selectedCurso!.value &&
+            g.semester.name == semestre.value)
+          .map((g) => _getPeriodFromSemester(g.semester))
+          .toSet()
+          .toList();
+
+      _periodos = periodosDisponiveis.map((p) => 
+        DropdownValueModel(
+          value: p.toLowerCase(),
+          label: p,
+        )
+      ).toList();
+    });
+  }
+
+  // Atualiza as turmas disponíveis quando um período é selecionado
+  void _updateTurmas(DropdownValueModel? periodo) {
+    setState(() {
+      selectedPeriodo = periodo;
+      // Reseta a seleção seguinte
+      selectedTurma = null;
+      _turmas = [];
+
+      if (periodo == null || selectedCurso == null || selectedSemestre == null) return;
+
+      // Filtra as turmas disponíveis para o curso, semestre e período selecionados
+      final turmasDisponiveis = _allGroups.where((g) =>
+        g.course.id.toString() == selectedCurso!.value &&
+        g.semester.name == selectedSemestre!.value &&
+        _getPeriodFromSemester(g.semester).toLowerCase() == periodo.value
+      ).toList();
+
+      _turmas = turmasDisponiveis.map((g) => 
+        DropdownValueModel(
+          value: g.id.toString(), // Agora usamos o ID da turma como valor
+          label: g.name,
+        )
+      ).toList();
+    });
+  }
+
+  String _getPeriodFromSemester(Semester s) {
+    switch (s) {
+      case Semester.primeiro:
+      case Semester.segundo:
+        return 'Matutino';
+      case Semester.terceiro:
+      case Semester.quarto:
+        return 'Vespertino';
+      case Semester.quinto:
+      case Semester.sexto:
+      case Semester.setimo:
+      case Semester.oitavo:
+      case Semester.nono:
+      case Semester.decimo:
+        return 'Noturno';
+      default:
+        return 'Noturno';
+    }
+  }
+
+  Future<void> _saveAcademicData() async {
+    if (_nameController.text.isEmpty || selectedTurma == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, preencha todos os campos.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Não precisamos mais procurar a turma, já temos o ID direto
+      final groupId = int.parse(selectedTurma!.value);
+
+      await _mobileUserService.linkUserToGroup(
+        userId: _supabase.auth.currentUser!.id,
+        groupId: groupId,
+        name: _nameController.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar dados: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   void _handleDropdownOpen(String dropdownId) {
-    if (openDropdown != null && openDropdown != dropdownId) {
-      // Fecha o dropdown anterior
-      setState(() {
-        openDropdown = dropdownId;
-      });
-    } else {
-      setState(() {
-        openDropdown = dropdownId;
-      });
-    }
+    setState(() {
+      openDropdown = openDropdown != dropdownId ? dropdownId : null;
+    });
   }
 
-  final List<DropdownValueModel> cursos = [
-    DropdownValueModel(value: '1', label: 'Engenharia de Software'),
-    DropdownValueModel(value: '2', label: 'Ciência da Computação'),
-    DropdownValueModel(value: '3', label: 'Sistemas de Informação'),
-  ];
-
-  final List<DropdownValueModel> semestres = [
-    DropdownValueModel(value: '1', label: '1º'),
-    DropdownValueModel(value: '2', label: '2º'),
-    DropdownValueModel(value: '3', label: '3º'),
-    DropdownValueModel(value: '4', label: '4º'),
-  ];
-
-  final List<DropdownValueModel> turnos = [
-    DropdownValueModel(value: '1', label: 'Manhã'),
-    DropdownValueModel(value: '2', label: 'Tarde'),
-    DropdownValueModel(value: '3', label: 'Noite'),
-  ];
-
-  // Mapa de turmas por curso
-  final Map<String, List<DropdownValueModel>> turmasPorCurso = {
-    '1': [ // Engenharia de Software
-      DropdownValueModel(value: '1', label: 'A'),
-      DropdownValueModel(value: '2', label: 'B'),
-      DropdownValueModel(value: '3', label: 'C'),
-    ],
-    '2': [ // Ciência da Computação
-      DropdownValueModel(value: '1', label: 'Turma Única'),
-    ],
-    '3': [ // Sistemas de Informação
-      DropdownValueModel(value: '1', label: 'Turma X'),
-      DropdownValueModel(value: '2', label: 'Turma Y'),
-    ],
-  };
-
-  // Método para obter as turmas disponíveis do curso selecionado
-  List<DropdownValueModel> getTurmas() {
-    if (selectedCurso == null) {
-      return [];
-    }
-    return turmasPorCurso[selectedCurso!.value] ?? [];
-  }
-
-  // Verifica se o curso selecionado tem mais de uma turma
-  bool cursoTemMultiplasTurmas() {
-    if (selectedCurso == null) {
-      return false;
-    }
-    final turmas = turmasPorCurso[selectedCurso!.value];
-    return turmas != null && turmas.length > 1;
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtém as turmas disponíveis para o curso selecionado
-    final turmas = getTurmas();
-    
-    // Verifica se deve exibir o dropdown de turma
-    final exibirDropdownTurma = cursoTemMultiplasTurmas();
-
-    //Responsividade
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
     final double height = screenSize.height;
-    
-    final double horizontalPadding = width * 0.08;
-    final double logoHeight = height * 0.15;
-    final double fieldWidth = width - (horizontalPadding * 2);
-    final double halfFieldWidth = (fieldWidth / 2) - 5;
-    final double verticalSpacing = height * 0.015;
-    final double bottomSpacing = height * 0.1;
+    final bool isDesktop = width > 1024;
 
-    final double inputFontSize = (width * 0.04).clamp(14.0, 20.0);
-    final double titleFontSize = (width * 0.08).clamp(20.0, 40.0);
-    final double btnFontSize = (width * 0.06).clamp(8.0, 20.0);
-    final double iconSize = (width * 0.05).clamp(10.0, 20.0);
-  
+    double horizontalPadding;
+    double logoHeight;
+    double verticalSpacing;
+    double cardWidth;
+    double cardPadding;
+    double fontSize;
+    double buttonFontSize;
+    double iconSize;
 
+    if (isDesktop) {
+      horizontalPadding = 0;
+      logoHeight = width * 0.08;
+      verticalSpacing = height * 0.03;
+      cardWidth = width * 0.25;
+      cardWidth = cardWidth.clamp(340.0, 420.0);
+      cardPadding = 30.0;
+      fontSize = 16.0;
+      buttonFontSize = 16.0;
+      iconSize = 22.0;
+    } else {
+      horizontalPadding = width * 0.08;
+      logoHeight = height * 0.15;
+      verticalSpacing = height * 0.02;
+      cardWidth = width - (horizontalPadding * 2);
+      cardPadding = width * 0.06;
+      fontSize = (width * 0.04).clamp(14.0, 20.0);
+      buttonFontSize = (width * 0.04).clamp(14.0, 20.0);
+      iconSize = (width * 0.05).clamp(18.0, 24.0);
+    }
 
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xfff1f1f1),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.verdeUNICV),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xfff1f1f1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro ao carregar dados: $_error'),
+              const SizedBox(height: 20),
+              CustomButton(
+                text: 'Tentar Novamente',
+                onPressed: _fetchInitialData,
+                backgroundColor: AppColors.verdeUNICV,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget buildForm() {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: logoHeight,
+            child: Image.asset('assets/images/LogoUNICV.png'),
+          ),
+          SizedBox(height: verticalSpacing * 1.2),
+          Text(
+            'Seus Dados Acadêmicos',
+            style: TextStyle(
+              color: AppColors.verdeUNICV,
+              fontSize: fontSize * 1.5,
+              fontWeight: FontWeight.w800,
+              fontFamily: 'Inter',
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: verticalSpacing),
+          CustomTextField(
+            controller: _nameController,
+            label: 'Seu Nome Completo',
+            borderColor: AppColors.verdeUNICV,
+            labelColor: AppColors.verdeUNICV,
+            fontSize: fontSize,
+          ),
+          SizedBox(height: verticalSpacing),
+          CustomDropdown(
+            label: 'Seu Curso',
+            fontSize: fontSize,
+            items: _cursos,
+            selectedValue: selectedCurso,
+            onChanged: _updateSemestres,
+            onOpen: () => _handleDropdownOpen('curso'),
+            dropdownId: 'curso',
+            openDropdownId: openDropdown,
+            enableSearch: true,
+          ),
+          SizedBox(height: verticalSpacing),
+          Row(
+            children: [
+              Expanded(
+                child: CustomDropdown(
+                  label: 'Semestre',
+                  fontSize: fontSize,
+                  items: _semestres,
+                  selectedValue: selectedSemestre,
+                  onChanged: _updatePeriodos,
+                  onOpen: () => _handleDropdownOpen('semestre'),
+                  dropdownId: 'semestre',
+                  openDropdownId: openDropdown,
+                  isEnabled: selectedCurso != null,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: CustomDropdown(
+                  label: 'Período',
+                  fontSize: fontSize,
+                  items: _periodos,
+                  selectedValue: selectedPeriodo,
+                  onChanged: _updateTurmas,
+                  onOpen: () => _handleDropdownOpen('periodo'),
+                  dropdownId: 'periodo',
+                  openDropdownId: openDropdown,
+                  isEnabled: selectedSemestre != null,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: verticalSpacing),
+          CustomDropdown(
+            label: 'Turma',
+            fontSize: fontSize,
+            items: _turmas,
+            selectedValue: selectedTurma,
+            onChanged: (value) => setState(() => selectedTurma = value),
+            onOpen: () => _handleDropdownOpen('turma'),
+            dropdownId: 'turma',
+            openDropdownId: openDropdown,
+            isEnabled: selectedPeriodo != null,
+          ),
+          SizedBox(height: verticalSpacing * 2),
+          CustomButton(
+            text: 'Próximo',
+            onPressed: _saveAcademicData,
+            backgroundColor: AppColors.verdeUNICV,
+            icon: Icons.arrow_forward_rounded,
+            width: double.infinity,
+            height: 48,
+            fontSize: buttonFontSize,
+            iconSize: iconSize,
+          ),
+        ],
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
-      body: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          return Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: height * 0.06),
-                    SizedBox(
-                      height: logoHeight,
-                      child: Image.asset('assets/images/LogoUNICV.png'),
-                    ),
-                    SizedBox(height: height * 0.03),
-                    Text(
-                      'Seus Dados',
-                      style: TextStyle(
-                        color: AppColors.verdeUNICV,
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.w800,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                    SizedBox(height: height * 0.02),
-                     CustomTextField(
-                      label: 'Seu Nome',
-                      borderColor: AppColors.verdeUNICV,
-                      labelColor: AppColors.verdeUNICV,
-                      fontSize: inputFontSize,
-                    ),
-                    SizedBox(height: verticalSpacing),
-                    CustomDropdown(
-                      label: 'Seu Curso',
-                      fontSize: inputFontSize,
-                      items: cursos,
-                      selectedValue: selectedCurso,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCurso = value;
-                          // Reseta a turma selecionada ao trocar de curso
-                          selectedTurma = null;
-                          openDropdown = null;
-                        });
-                      },
-                      onOpen: () => _handleDropdownOpen('curso'),
-                      dropdownId: 'curso',
-                      openDropdownId: openDropdown,
-                      enableSearch: true,
-                    ),
-                    SizedBox(height: verticalSpacing),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomDropdown(
-                          width: halfFieldWidth,
-                          label: 'Semestre',
-                          fontSize: inputFontSize,
-                          items: semestres,
-                          selectedValue: selectedSemestre,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedSemestre = value;
-                              openDropdown = null;
-                            });
-                          },
-                          onOpen: () => _handleDropdownOpen('semestre'),
-                          dropdownId: 'semestre',
-                          openDropdownId: openDropdown,
-                        ),
-                        CustomDropdown(
-                          width: halfFieldWidth,
-                          label: 'Turno',
-                          fontSize: inputFontSize,
-                          items: turnos,
-                          selectedValue: selectedTurno,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedTurno = value;
-                              openDropdown = null;
-                            });
-                          },
-                          onOpen: () => _handleDropdownOpen('turno'),
-                          dropdownId: 'turno',
-                          openDropdownId: openDropdown,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: verticalSpacing),
-                    SizedBox(
-                      height: 50,
-                      child: Center(
-                        child: Visibility(
-                          visible: exibirDropdownTurma,
-                          maintainSize: false,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: CustomDropdown(
-                            width: halfFieldWidth,
-                            label: 'Turma',
-                            fontSize: inputFontSize,
-                            items: turmas,
-                            selectedValue: selectedTurma,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedTurma = value;
-                                openDropdown = null;
-                              });
-                            },
-                            onOpen: () => _handleDropdownOpen('turma'),
-                            dropdownId: 'turma',
-                            openDropdownId: openDropdown,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: bottomSpacing),
-                    CustomButton(
-                      text: 'Próximo',
-                      onPressed: () {},
-                      backgroundColor: AppColors.verdeUNICV,
-                      icon: Icons.arrow_forward_rounded,
-                      width: width * 0.45,
-                      height: height * 0.055,
-                      fontSize: btnFontSize,
-                      iconSize: iconSize,
-                    ),
-                    SizedBox(height: height * 0.03),
-                  ],
+      body: Center(
+        child: SingleChildScrollView(
+          child: isDesktop
+              ? Container(
+                  width: cardWidth,
+                  padding: EdgeInsets.all(cardPadding),
+                  child: buildForm(),
+                )
+              : Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalSpacing * 2,
+                  ),
+                  child: buildForm(),
                 ),
-              ),
-            ),
-          );
-        },
+        ),
       ),
     );
   }

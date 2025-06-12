@@ -1,7 +1,11 @@
 import 'package:em_sala_mais/backend/services/user.service.dart';
+import 'package:em_sala_mais/backend/services/mobile_user.service.dart';
+import 'package:em_sala_mais/mobile/screens/academic_data_screen.dart';
+import 'package:em_sala_mais/mobile/screens/home_screen.dart';
 import 'package:em_sala_mais/mobile/screens/user_create_screen.dart';
 import 'package:em_sala_mais/mobile/screens/user_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../components/widgets/custom_tf.dart';
 import '../../components/widgets/custom_btn.dart';
 import '../../theme/theme.dart';
@@ -17,6 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _userService = UserService();
+  final _mobileUserService = MobileUserService();
+  final _supabase = Supabase.instance.client;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -47,8 +53,20 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (session != null && mounted) {
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const UserScreen()));
+        final mobileUser = await _mobileUserService
+            .getMobileUserByAuthId(_supabase.auth.currentUser!.id);
+
+        if (mounted) {
+          if (mobileUser == null) {
+            // First login, go to academic data screen
+            Navigator.of(context).pushReplacement(MaterialPageRoute(
+                builder: (context) => const AcademicDataScreen()));
+          } else {
+            // User already linked, go to home screen
+            Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomeScreen()));
+          }
+        }
       }
     } catch (e) {
       if (mounted) {

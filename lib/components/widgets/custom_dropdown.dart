@@ -52,6 +52,7 @@ class CustomDropdown extends StatefulWidget {
   final String dropdownId;
   final bool enableSearch;
   final bool showClearButton;
+  final bool isEnabled;
 
   const CustomDropdown({
     super.key,
@@ -68,6 +69,7 @@ class CustomDropdown extends StatefulWidget {
     required this.dropdownId,
     this.enableSearch = false,
     this.showClearButton = false,
+    this.isEnabled = true,
   });
 
   @override
@@ -173,19 +175,19 @@ class _CustomDropdownState extends State<CustomDropdown> {
         key: _dropdownKey,
         width: widget.width,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: widget.isEnabled ? Colors.white : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _toggleOverlay,
+            onTap: widget.isEnabled ? _toggleOverlay : null,
             borderRadius: BorderRadius.circular(20),
             child: InputDecorator(
               decoration: InputDecoration(
                 labelText: widget.label,
                 labelStyle: TextStyle(
-                  color: AppColors.verdeUNICV,
+                  color: widget.isEnabled ? AppColors.verdeUNICV : Colors.grey,
                   fontSize: widget.fontSize ?? 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -198,16 +200,18 @@ class _CustomDropdownState extends State<CustomDropdown> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                  borderSide: BorderSide(
+                    color: widget.isEnabled ? AppColors.verdeUNICV : Colors.grey,
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
+                disabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: AppColors.verdeUNICV, width: 2),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
+                enabled: widget.isEnabled,
               ),
               child: Row(
                 children: [
