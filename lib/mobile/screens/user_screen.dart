@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../theme/theme.dart'; // Garanta que AppColors.verdeUNICV esteja definido aqui
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../theme/theme.dart';
+import '../../backend/services/mobile_user.service.dart';
+import '../../backend/services/group.service.dart';
+import '../../backend/model/group.dart';
+import '../../backend/model/enums.dart';
+import '../screens/login_screen.dart';
 
 // Modelos de dados (geralmente em arquivos separados)
 class UserProfile {
@@ -31,62 +37,90 @@ class UserScreen extends StatefulWidget {
 }
 
 class _UserScreenState extends State<UserScreen> {
-  // Dados mocados para o perfil do usuário
-  late UserProfile _userProfile; // Alterado para late para permitir modificação
+  final _mobileUserService = MobileUserService();
+  final _groupService = GroupService();
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  String? _userName;
+  Group? _userGroup;
+  String? _error;
 
   @override
-  void initState() { // Adicionado initState para inicializar _userProfile
+  void initState() {
     super.initState();
-    _userProfile = UserProfile(
-      nomeCompleto: 'Pedro Marques Fonseca',
-      cursos: [
-        UserCurso(nomeCurso: 'Engenharia de Software', semestre: '7º', turno: 'Noturno', turma: 'A'),
-        UserCurso(nomeCurso: 'Ciência da Computação', semestre: '3º', turno: 'Matutino', turma: 'B'),
-        UserCurso(nomeCurso: 'Análise e Desenvolvimento de Sistemas', semestre: '1º', turno: 'Noturno'),
-      ],
-    );
+    _loadUserData();
   }
 
-  void _adicionarNovoCurso() {
-    // TODO: Implementar a navegação para uma tela de adição de curso ou um modal
-    print('Botão Adicionar Novo Curso Pressionado');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de adicionar novo curso ainda não implementada.')),
-    );
-    // Exemplo de como adicionar (apenas para teste, UI de adição necessária):
-    // setState(() {
-    //   _userProfile.cursos.add(UserCurso(nomeCurso: "Novo Curso Adicionado", semestre: "1º", turno: "Noite"));
-    // });
+  String _formatSemester(Semester semester) {
+    final idx = Semester.values.indexOf(semester) + 1;
+    return '${idx}º Semestre';
   }
 
-  void _editarCurso(UserCurso cursoParaEditar) {
-    // TODO: Implementar a navegação para uma tela de edição de curso ou um modal
-    print('Botão Editar Curso Pressionado para: ${cursoParaEditar.nomeCurso}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Funcionalidade de editar o curso "${cursoParaEditar.nomeCurso}" ainda não implementada.')),
-    );
+  String _getPeriodFromSemester(Semester s) {
+    switch (s) {
+      case Semester.primeiro:
+      case Semester.segundo:
+        return 'Matutino';
+      case Semester.terceiro:
+      case Semester.quarto:
+        return 'Vespertino';
+      case Semester.quinto:
+      case Semester.sexto:
+      case Semester.setimo:
+      case Semester.oitavo:
+      case Semester.nono:
+      case Semester.decimo:
+        return 'Noturno';
+      default:
+        return 'Noturno';
+    }
   }
 
-  void _removerCurso(UserCurso cursoParaRemover) {
+  Future<void> _loadUserData() async {
     setState(() {
-      _userProfile.cursos.removeWhere((curso) => curso == cursoParaRemover);
+      _isLoading = true;
+      _error = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Curso "${cursoParaRemover.nomeCurso}" removido.')),
-    );
+
+    try {
+      final userData = await _mobileUserService.getMobileUserByAuthId(
+        _supabase.auth.currentUser!.id,
+      );
+      
+      if (userData != null) {
+        final group = await _groupService.getGroup(userData.idGroup);
+        setState(() {
+          _userName = userData.name;
+          _userGroup = group;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Erro ao carregar dados do usuário';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  void _sair() {
-    // Implementar a lógica de logout
-    // Por exemplo, navegar para a tela de login e limpar dados de sessão
-    print('Botão Sair pressionado');
-    // Navigator.of(context).pushAndRemoveUntil(
-    //   MaterialPageRoute(builder: (context) => LoginScreen()), // Substitua LoginScreen pela sua tela de login
-    //   (Route<dynamic> route) => false,
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de Sair ainda não implementada.')),
-    );
+  Future<void> _sair() async {
+    try {
+      await _supabase.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao sair do sistema')),
+        );
+      }
+    }
   }
 
   Widget _buildInfoContainer(String title, String content) {
@@ -102,7 +136,7 @@ class _UserScreenState extends State<UserScreen> {
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 1,
             blurRadius: 5,
-            offset: const Offset(0, 3), // changes position of shadow
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -131,11 +165,15 @@ class _UserScreenState extends State<UserScreen> {
     );
   }
 
-  Widget _buildCursoCard(UserCurso curso) {
+  Widget _buildClassInfoCard() {
+    if (_userGroup == null) {
+      return const Center(child: Text('Nenhuma informação acadêmica disponível.'));
+    }
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 16.0, right: 8.0),
-      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
@@ -148,52 +186,67 @@ class _UserScreenState extends State<UserScreen> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  curso.nomeCurso,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.verdeUNICV, // Usando a cor do tema
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                Text('Semestre: ${curso.semestre}', style: const TextStyle(fontSize: 15, color: Colors.black54)),
-                Text('Turno: ${curso.turno}', style: const TextStyle(fontSize: 15, color: Colors.black54)),
-                if (curso.turma != null && curso.turma!.isNotEmpty)
-                  Text('Turma: ${curso.turma}', style: const TextStyle(fontSize: 15, color: Colors.black54)),
-              ],
+          Text(
+            _userGroup!.course.name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.verdeUNICV,
             ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit_outlined, color: AppColors.verdeUNICV.withOpacity(0.8), size: 22),
-                tooltip: 'Editar Curso',
-                onPressed: () => _editarCurso(curso),
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: Icon(Icons.remove_circle_outline, color: Colors.red[400], size: 22),
-                tooltip: 'Remover Curso',
-                onPressed: () => _removerCurso(curso),
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(),
-              ),
-            ],
+          const SizedBox(height: 16.0),
+          _buildInfoRow(
+            icon: Icons.school,
+            label: 'Semestre',
+            value: _formatSemester(_userGroup!.semester),
+          ),
+          const SizedBox(height: 12.0),
+          _buildInfoRow(
+            icon: Icons.access_time,
+            label: 'Período',
+            value: _getPeriodFromSemester(_userGroup!.semester),
+          ),
+          const SizedBox(height: 12.0),
+          _buildInfoRow(
+            icon: Icons.groups,
+            label: 'Turma',
+            value: _userGroup!.name,
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 8.0),
+        Text(
+          '$label:',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8.0),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -210,55 +263,38 @@ class _UserScreenState extends State<UserScreen> {
           style: TextStyle(color: AppColors.verdeUNICV, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
-        elevation: 1.0, // Sombra sutil
+        elevation: 1.0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.verdeUNICV),
           onPressed: () => Navigator.of(context).pop(),
         ),
         iconTheme: const IconThemeData(color: AppColors.verdeUNICV),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildInfoContainer('Nome Completo', _userProfile.nomeCompleto),
-            const SizedBox(height: 10.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Meus Cursos',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.verdeUNICV,
-                    fontFamily: 'Inter',
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.verdeUNICV))
+          : _error != null
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              : SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _buildInfoContainer('Nome Completo', _userName ?? 'Nome não disponível'),
+                      const SizedBox(height: 10.0),
+                      const Text(
+                        'Informações Acadêmicas',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.verdeUNICV,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildClassInfoCard(),
+                    ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, color: AppColors.verdeUNICV, size: 24),
-                  tooltip: 'Adicionar Novo Curso',
-                  onPressed: _adicionarNovoCurso,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16.0),
-            if (_userProfile.cursos.isEmpty)
-              const Center(child: Text('Nenhum curso cadastrado.'))
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _userProfile.cursos.length,
-                itemBuilder: (context, index) {
-                  return _buildCursoCard(_userProfile.cursos[index]);
-                },
-              ),
-            const SizedBox(height: 30.0),
-          ],
-        ),
-      ),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.all(horizontalPadding).copyWith(bottom: 20.0),
         child: ElevatedButton.icon(

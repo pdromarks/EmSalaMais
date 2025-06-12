@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../theme/theme.dart'; // Assuming theme.dart is in lib/theme/
+import '../../theme/theme.dart';
+import '../../components/widgets/custom_dropdown.dart';
+import '../../components/widgets/custom_tf.dart';
+import '../../backend/services/schedule_teacher.service.dart';
+import '../../backend/services/room_allocation.service.dart';
+import '../../backend/model/schedule_teacher.dart';
+import '../../backend/model/room_allocation.dart';
+import '../../backend/model/enums.dart';
+import '../../backend/model/room.dart';
+import '../../backend/model/bloco.dart';
 
 class SearchTeacherScreen extends StatefulWidget {
   const SearchTeacherScreen({super.key});
@@ -9,29 +18,38 @@ class SearchTeacherScreen extends StatefulWidget {
 }
 
 class _SearchTeacherScreenState extends State<SearchTeacherScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String? _selectedPeriodo;
-  String? _selectedHorario;
+  final _scheduleTeacherService = ScheduleTeacherService();
+  final _roomAllocationService = RoomAllocationService();
+  final _searchController = TextEditingController();
+  
+  bool _isLoading = true;
+  String? _error;
+  String? _openDropdownId;
 
-  // Mock data for periods and horarios
-  final List<String> _periodos = ['Matutino', 'Vespertino', 'Noturno'];
-  final List<String> _horarios = ['1º horário', '2º horário'];
+  // Dados do backend
+  List<ScheduleTeacher> _allSchedules = [];
+  List<RoomAllocation> _allAllocations = [];
+  
+  // Valores selecionados
+  DropdownValueModel? _selectedPeriodo;
+  DropdownValueModel? _selectedHorario;
 
-  // Mock data for teachers - replace with actual data source
-  final List<Map<String, String>> _allTeachers = [
-    {'professor': 'Prof. Dr. João Silva', 'sala': 'Sala 101'},
-    {'professor': 'Profa. Dra. Maria Oliveira', 'sala': 'Lab. Info II'},
-    {'professor': 'Prof. Carlos Alberto', 'sala': 'Sala 203'},
-    {'professor': 'Profa. Ana Beatriz', 'sala': 'Sala 105'},
-    {'professor': 'Prof. Ricardo Gomes', 'sala': 'Auditório'},
+  // Listas para os dropdowns
+  final List<DropdownValueModel> _periodos = [
+    DropdownValueModel(value: 'matutino', label: 'Matutino'),
+    DropdownValueModel(value: 'vespertino', label: 'Vespertino'),
+    DropdownValueModel(value: 'noturno', label: 'Noturno'),
   ];
 
-  List<Map<String, String>> _filteredTeachers = [];
+  final List<DropdownValueModel> _horarios = [
+    DropdownValueModel(value: 'primeira', label: '1ª Aula'),
+    DropdownValueModel(value: 'segunda', label: '2ª Aula'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _filteredTeachers = _allTeachers;
+    _fetchData();
     _searchController.addListener(_filterTeachers);
   }
 
@@ -43,49 +61,138 @@ class _SearchTeacherScreenState extends State<SearchTeacherScreen> {
   }
 
   void _filterTeachers() {
-    final query = _searchController.text.toLowerCase();
+    // Força uma atualização da UI quando o texto de busca muda
+    setState(() {});
+  }
+
+  Future<void> _fetchData() async {
     setState(() {
-      _filteredTeachers =
-          _allTeachers.where((teacher) {
-            final teacherName = teacher['professor']!.toLowerCase();
-            final matchesQuery = teacherName.contains(query);
-            // TODO: Add filtering by _selectedPeriodo and _selectedHorario if needed
-            return matchesQuery;
-          }).toList();
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final schedules = await _scheduleTeacherService.getScheduleTeachers();
+      final allocations = await _roomAllocationService.getRoomAllocations();
+      
+      setState(() {
+        _allSchedules = schedules;
+        _allAllocations = allocations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleDropdownOpen(String dropdownId) {
+    setState(() {
+      _openDropdownId = _openDropdownId == dropdownId ? null : dropdownId;
     });
   }
 
-  Widget _buildTeacherListItem(Map<String, String> teacherData) {
+  List<Map<String, dynamic>> _getFilteredTeachers() {
+    if (_allSchedules.isEmpty) return [];
+
+    final today = DateTime.now();
+    final currentDayOfWeek = DayOfWeek.values[today.weekday - 1];
+    
+    // Filtra os horários pelo dia atual e filtros selecionados
+    var filteredSchedules = _allSchedules.where((schedule) {
+      final matchesDay = schedule.dayOfWeek == currentDayOfWeek;
+      final matchesPeriod = _selectedPeriodo == null || 
+        schedule.schedule.periodoHora.toLowerCase() == _selectedPeriodo!.value;
+      final matchesTime = _selectedHorario == null || 
+        schedule.schedule.scheduleTime.name == _selectedHorario!.value;
+      final matchesSearch = _searchController.text.isEmpty || 
+        schedule.teacher.name.toLowerCase().contains(_searchController.text.toLowerCase());
+      
+      return matchesDay && matchesPeriod && matchesTime && matchesSearch;
+    }).toList();
+
+    // Para cada horário, busca a sala alocada
+    return filteredSchedules.map((schedule) {
+      final allocation = _allAllocations.firstWhere(
+        (alloc) => 
+          alloc.scheduleTeacher.id == schedule.id &&
+          alloc.scheduleTeacher.dayOfWeek == currentDayOfWeek,
+        orElse: () => RoomAllocation(
+          id: -1,
+          room: Room(
+            id: -1,
+            name: 'Sala não definida',
+            bloco: Bloco(id: -1, name: ''),
+            chairsNumber: 0,
+            hasTv: false,
+            hasProjector: false,
+          ),
+          scheduleTeacher: schedule,
+        ),
+      );
+
+      return {
+        'professor': schedule.teacher.name,
+        'sala': allocation.room.name,
+        'bloco': allocation.room.bloco.name,
+        'horario': '${schedule.schedule.scheduleStart} - ${schedule.schedule.scheduleEnd}',
+      };
+    }).toList();
+  }
+
+  Widget _buildTeacherListItem(Map<String, dynamic> teacherData) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
-            spreadRadius: 0.5,
-            offset: const Offset(0, 3),
+            spreadRadius: 1,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 10.0,
-          horizontal: 16.0,
-        ),
-        title: Text(
-          teacherData['professor']!,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
-        trailing: Text(
-          teacherData['sala']!,
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              teacherData['professor'],
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12.0),
+            Row(
+              children: [
+                const Icon(Icons.room_outlined, color: Colors.grey, size: 20),
+                const SizedBox(width: 8.0),
+                Text(
+                  '${teacherData['sala']} (${teacherData['bloco']})',
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: Colors.grey, size: 20),
+                const SizedBox(width: 8.0),
+                Text(
+                  teacherData['horario'],
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -95,141 +202,112 @@ class _SearchTeacherScreenState extends State<SearchTeacherScreen> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final double width = screenSize.width;
-    // final double height = screenSize.height; // Uncomment if needed
+    final double height = screenSize.height;
 
-    final double horizontalPadding = width * 0.05;
-    // final double verticalSpacing = height * 0.02; // Uncomment if needed
+    final double horizontalPadding = width * 0.08;
+    final double verticalSpacing = height * 0.02;
+    final double inputFontSize = (width * 0.04).clamp(14.0, 18.0);
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xfff1f1f1),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.verdeUNICV),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xfff1f1f1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro ao carregar dados: $_error'),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: _fetchData,
+                child: const Text('Tentar Novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final filteredTeachers = _getFilteredTeachers();
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
-      // appBar: AppBar( // Optional: Add AppBar if needed, otherwise it inherits from HomeScreen
-      //   title: const Text('Buscar Professores', style: TextStyle(color: AppColors.verdeUNICV)),
-      //   backgroundColor: Colors.white,
-      //   iconTheme: IconThemeData(color: AppColors.verdeUNICV),
-      //   elevation: 1.0,
-      // ),
       body: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: horizontalPadding,
-          vertical: 20.0,
+          vertical: height * 0.03,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Text(
+            Text(
               'Buscar Professores',
               style: TextStyle(
-                fontSize:
-                    24, // Consistent with RoomAllocationScreen title style
-                fontWeight: FontWeight.bold,
-                color: AppColors.verdeUNICV, // Using theme color
+                fontSize: (width * 0.08).clamp(24.0, 32.0),
+                fontWeight: FontWeight.w800,
+                color: AppColors.verdeUNICV,
                 fontFamily: 'Inter',
               ),
             ),
-            const SizedBox(height: 20.0),
-            TextField(
+            SizedBox(height: verticalSpacing * 1.5),
+            CustomTextField(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Digite o nome do professor...',
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.verdeUNICV,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15.0,
-                  horizontal: 20.0,
-                ),
-              ),
+              label: 'Nome do Professor',
+              borderColor: AppColors.verdeUNICV,
+              labelColor: AppColors.verdeUNICV,
+              fontSize: inputFontSize,
+              prefixIcon: Icons.search,
+              iconColor: AppColors.verdeUNICV,
             ),
-            const SizedBox(height: 16.0),
+            SizedBox(height: verticalSpacing),
             Row(
-              children: <Widget>[
+              children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'Período',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20.0,
-                        vertical: 15.0,
-                      ),
-                    ),
-                    value: _selectedPeriodo,
-                    hint: const Text('Selecione'),
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.verdeUNICV,
-                    ),
-                    items:
-                        _periodos.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedPeriodo = newValue;
-                        _filterTeachers(); // Re-filter when period changes
-                      });
-                    },
+                  child: CustomDropdown(
+                    label: 'Período',
+                    fontSize: inputFontSize,
+                    items: _periodos,
+                    selectedValue: _selectedPeriodo,
+                    onChanged: (value) => setState(() {
+                      _selectedPeriodo = value;
+                      _filterTeachers();
+                    }),
+                    onOpen: () => _handleDropdownOpen('periodo'),
+                    dropdownId: 'periodo',
+                    openDropdownId: _openDropdownId,
                   ),
                 ),
-                const SizedBox(width: 16.0),
+                const SizedBox(width: 20),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'Horário',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20.0,
-                        vertical: 15.0,
-                      ),
-                    ),
-                    value: _selectedHorario,
-                    hint: const Text('Selecione'),
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.verdeUNICV,
-                    ),
-                    items:
-                        _horarios.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedHorario = newValue;
-                        _filterTeachers(); // Re-filter when horario changes
-                      });
-                    },
+                  child: CustomDropdown(
+                    label: 'Horário',
+                    fontSize: inputFontSize,
+                    items: _horarios,
+                    selectedValue: _selectedHorario,
+                    onChanged: (value) => setState(() {
+                      _selectedHorario = value;
+                      _filterTeachers();
+                    }),
+                    onOpen: () => _handleDropdownOpen('horario'),
+                    dropdownId: 'horario',
+                    openDropdownId: _openDropdownId,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24.0),
-            const Text(
+            SizedBox(height: verticalSpacing * 2),
+            Text(
               'Lista de Professores',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: inputFontSize * 1.2,
                 fontWeight: FontWeight.w600,
                 color: AppColors.verdeUNICV,
                 fontFamily: 'Inter',
@@ -237,30 +315,40 @@ class _SearchTeacherScreenState extends State<SearchTeacherScreen> {
             ),
             const SizedBox(height: 10.0),
             Expanded(
-              child:
-                  _filteredTeachers.isEmpty
-                      ? Center(
-                        child: Text(
-                          _searchController.text.isEmpty &&
-                                  _selectedPeriodo == null &&
-                                  _selectedHorario == null
-                              ? 'Utilize os filtros acima para buscar.'
-                              : 'Nenhum professor encontrado com os filtros aplicados.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+              child: filteredTeachers.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: AppColors.verdeUNICV,
                           ),
-                        ),
-                      )
-                      : ListView.builder(
-                        itemCount: _filteredTeachers.length,
-                        itemBuilder: (context, index) {
-                          return _buildTeacherListItem(
-                            _filteredTeachers[index],
-                          );
-                        },
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty &&
+                                    _selectedPeriodo == null &&
+                                    _selectedHorario == null
+                                ? 'Utilize os filtros acima para buscar professores.'
+                                : 'Nenhum professor encontrado com os filtros aplicados.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: inputFontSize,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredTeachers.length,
+                      itemBuilder: (context, index) {
+                        return _buildTeacherListItem(
+                          filteredTeachers[index],
+                        );
+                      },
+                    ),
             ),
           ],
         ),

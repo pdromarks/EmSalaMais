@@ -17,6 +17,7 @@ class CustomTextField extends StatefulWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -35,6 +36,7 @@ class CustomTextField extends StatefulWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.keyboardType,
+    this.enabled = true,
   });
 
   @override
@@ -53,6 +55,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
     // Define valores padrão baseados no tamanho da tela
     final defaultFontSize = screenWidth * 0.04;
     final defaultIconSize = isDesktop ? 22.0 : defaultFontSize * 1.2;
+
+    // Get theme colors
+    final themeColor = widget.borderColor ?? Theme.of(context).primaryColor;
 
     // Calcula a largura efetiva considerando o maxWidth
     final effectiveWidth =
@@ -81,55 +86,65 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
         ],
       ),
-      child: TextField(
-        controller: widget.controller,
-        obscureText: widget.obscureText,
-        keyboardType: widget.keyboardType,
-        style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize),
-        decoration: InputDecoration(
-          labelText: widget.label,
-          labelStyle: TextStyle(
-            color: widget.labelColor ?? Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: (widget.fontSize ?? defaultFontSize) * 0.9,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: themeColor,
+            selectionColor: themeColor.withOpacity(0.2),
+            selectionHandleColor: themeColor,
           ),
-          filled: true,
-          fillColor: widget.backgroundColor ?? Colors.white,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: widget.borderColor ?? Colors.grey,
-              width: 2.0,
+        ),
+        child: TextField(
+          controller: widget.controller,
+          obscureText: widget.obscureText,
+          keyboardType: widget.keyboardType,
+          enabled: widget.enabled,
+          style: TextStyle(fontSize: widget.fontSize ?? defaultFontSize),
+          decoration: InputDecoration(
+            labelText: widget.label,
+            labelStyle: TextStyle(
+              color: widget.labelColor ?? themeColor,
+              fontWeight: FontWeight.bold,
+              fontSize: (widget.fontSize ?? defaultFontSize) * 0.9,
             ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: widget.borderColor ?? Colors.grey,
-              width: 2.0,
+            filled: true,
+            fillColor: widget.backgroundColor ?? Colors.white,
+            floatingLabelBehavior: FloatingLabelBehavior.always,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(
+                color: themeColor,
+                width: 2.0,
+              ),
             ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: widget.borderColor ?? AppColors.verdeUNICV,
-              width: 2.0,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(
+                color: themeColor,
+                width: 2.0,
+              ),
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(
+                color: themeColor,
+                width: 2.0,
+              ),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.03,
+              vertical: 12,
+            ),
+            prefixIcon:
+                widget.prefixIcon != null
+                    ? Icon(
+                      widget.prefixIcon,
+                      color: widget.iconColor ?? themeColor,
+                      size: widget.iconSize ?? defaultIconSize,
+                    )
+                    : null,
+            suffixIcon: widget.suffixIcon,
           ),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.03,
-            vertical: 12,
-          ),
-          prefixIcon:
-              widget.prefixIcon != null
-                  ? Icon(
-                    widget.prefixIcon,
-                    color: widget.iconColor ?? Colors.grey,
-                    size: widget.iconSize ?? defaultIconSize,
-                  )
-                  : null,
-          suffixIcon: widget.suffixIcon,
         ),
       ),
     );

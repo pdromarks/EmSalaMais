@@ -1,15 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../../theme/theme.dart'; // Your app's theme
+import '../../theme/theme.dart';
+import '../../backend/services/room_allocation.service.dart';
+import '../../backend/services/mobile_user.service.dart';
+import '../../backend/model/room_allocation.dart';
+import '../../backend/model/enums.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Model for a class/event (can be expanded)
 class Aula {
-  final String title;
-  final String time;
-  final String? details; // e.g., Professor, Sala
+  final String disciplina;
+  final String professor;
+  final String sala;
+  final String bloco;
+  final String horario;
+  final ScheduleTime scheduleTime;
+  final DayOfWeek dayOfWeek;
 
-  Aula({required this.title, required this.time, this.details});
+  Aula({
+    required this.disciplina,
+    required this.professor,
+    required this.sala,
+    required this.bloco,
+    required this.horario,
+    required this.scheduleTime,
+    required this.dayOfWeek,
+  });
 }
 
 class CalendarScreen extends StatefulWidget {
@@ -20,51 +36,107 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final _roomAllocationService = RoomAllocationService();
+  final _mobileUserService = MobileUserService();
+  final _supabase = Supabase.instance.client;
+
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<Aula>> _events = {};
+  bool _isLoading = true;
+  String? _error;
+  int? _userGroupId;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    // Load mock events - In a real app, fetch this from a service
-    _loadMockEvents();
-    // Initialize DateFormat for Portuguese locale
-    // This is often done in main.dart using initializeDateFormatting
-    // For simplicity here, ensure 'pt_BR' is available or use default.
+    _fetchAllocations();
   }
 
-  void _loadMockEvents() {
-    // Example mock data
-    final today = DateTime.now();
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    final dayAfterTomorrow = DateTime.now().add(const Duration(days: 2));
-    final aWeekLater = DateTime.now().add(const Duration(days: 7));
+  Future<void> _fetchAllocations() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-    _events = {
-      DateTime(today.year, today.month, today.day): [
-        Aula(title: 'Cálculo I', time: '08:00 - 09:40', details: 'Prof. Silva - Sala 101'),
-        Aula(title: 'Algoritmos', time: '10:00 - 11:40', details: 'Profa. Ana - Lab. II'),
-      ],
-      DateTime(tomorrow.year, tomorrow.month, tomorrow.day): [
-        Aula(title: 'Física Experimental', time: '14:00 - 15:40', details: 'Lab. Física'),
-      ],
-      DateTime(aWeekLater.year, aWeekLater.month, aWeekLater.day -2): [
-         Aula(title: 'PERÍODO DE PROVAS GRADUAÇÃO (2º Bimestre)', time: 'Evento', details: 'Prova de 2ª CHAMADA GRADUAÇÃO (2º Bimestre): Inscrições'),
-      ],
-       DateTime(aWeekLater.year, aWeekLater.month, aWeekLater.day): [
-         Aula(title: 'PROVA DE 2ª CHAMADA GRADUAÇÃO (2º Bimestre): Inscrições', time: 'Evento', details: 'Prova de 2ª CHAMADA GRADUAÇÃO (2º Bimestre): Inscrições'),
-      ]
-    };
-    setState(() {});
+    try {
+      // Busca o usuário atual e sua turma
+      final userId = _supabase.auth.currentUser!.id;
+      final mobileUser = await _mobileUserService.getMobileUserByAuthId(userId);
+      if (mobileUser == null) {
+        throw Exception('Usuário não encontrado');
+      }
+
+      // Armazena o ID da turma do usuário
+      _userGroupId = mobileUser.idGroup;
+
+      // Busca todas as alocações
+      final allAllocations = await _roomAllocationService.getRoomAllocations();
+      
+      // Filtra apenas as alocações da turma do usuário
+      final userAllocations = allAllocations
+          .where((alloc) => alloc.scheduleTeacher.group.id == _userGroupId)
+          .toList();
+
+      // Organiza as alocações por dia da semana
+      final Map<DateTime, List<Aula>> events = {};
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+      // Para cada dia do mês
+      for (var date = startOfMonth; date.isBefore(endOfMonth.add(const Duration(days: 1))); date = date.add(const Duration(days: 1))) {
+        // Pega o dia da semana (1 = segunda, 7 = domingo)
+        final weekday = date.weekday;
+        
+        // Ignora sábado e domingo
+        if (weekday > 5) continue;
+
+        // Filtra alocações para este dia da semana
+        final dayOfWeek = DayOfWeek.values[weekday - 1];
+        final dayAllocations = userAllocations
+            .where((alloc) => alloc.scheduleTeacher.dayOfWeek == dayOfWeek)
+            .toList();
+
+        // Ordena por horário
+        dayAllocations.sort((a, b) => 
+          a.scheduleTeacher.schedule.scheduleStart.compareTo(
+            b.scheduleTeacher.schedule.scheduleStart
+          )
+        );
+
+        // Converte para o formato Aula
+        final aulas = dayAllocations.map((alloc) => Aula(
+          disciplina: alloc.scheduleTeacher.subject.name,
+          professor: alloc.scheduleTeacher.teacher.name,
+          sala: alloc.room.name,
+          bloco: alloc.room.bloco.name,
+          horario: '${alloc.scheduleTeacher.schedule.scheduleStart} - ${alloc.scheduleTeacher.schedule.scheduleEnd}',
+          scheduleTime: alloc.scheduleTeacher.schedule.scheduleTime,
+          dayOfWeek: alloc.scheduleTeacher.dayOfWeek,
+        )).toList();
+
+        if (aulas.isNotEmpty) {
+          events[DateTime(date.year, date.month, date.day)] = aulas;
+        }
+      }
+
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   List<Aula> _getEventsForDay(DateTime day) {
-    // Normalize day to avoid issues with time component
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    return _events[normalizedDay] ?? [];
+    return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -76,81 +148,105 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  String _getDayOfWeekName(DayOfWeek day) {
+    switch (day) {
+      case DayOfWeek.segunda:
+        return 'Segunda-feira';
+      case DayOfWeek.terca:
+        return 'Terça-feira';
+      case DayOfWeek.quarta:
+        return 'Quarta-feira';
+      case DayOfWeek.quinta:
+        return 'Quinta-feira';
+      case DayOfWeek.sexta:
+        return 'Sexta-feira';
+      default:
+        return '';
+    }
+  }
+
   Widget _buildEventCard(Aula aula) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 6,
-            height: 80, // Adjust height as needed or make it dynamic
-            decoration: BoxDecoration(
-              color: AppColors.verdeUNICV, // Or another color for events
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8.0),
-                bottomLeft: Radius.circular(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              aula.disciplina,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.black87,
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    aula.time == 'Evento' ? 'Evento' : aula.title, // Differentiate "Evento" title
+            const SizedBox(height: 12.0),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, color: Colors.grey, size: 20),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: Text(
+                    aula.professor,
+                    style: const TextStyle(color: Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                const Icon(Icons.room_outlined, color: Colors.grey, size: 20),
+                const SizedBox(width: 8.0),
+                Text(
+                  '${aula.sala} (${aula.bloco})',
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: Colors.grey, size: 20),
+                const SizedBox(width: 8.0),
+                Text(
+                  aula.horario,
+                  style: const TextStyle(color: Colors.black87),
+                ),
+                const SizedBox(width: 16.0),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.verdeUNICV.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    aula.scheduleTime == ScheduleTime.primeira ? '1ª Aula' : '2ª Aula',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
                       color: AppColors.verdeUNICV,
-                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4.0),
-                   Text(
-                    aula.time == 'Evento' ? aula.title : aula.time, // Show title as description for "Evento"
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontFamily: 'Inter'),
-                  ),
-                  if (aula.details != null && aula.time != 'Evento') ...[
-                    const SizedBox(height: 4.0),
-                    Text(
-                      aula.details!,
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                          fontFamily: 'Inter'),
-                    ),
-                  ],
-                   if (aula.details != null && aula.time == 'Evento') ...[ // Show details if it's an "Evento"
-                    const SizedBox(height: 4.0),
-                    Text(
-                      aula.details!,
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontFamily: 'Inter'),
-                    ),
-                  ]
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -159,101 +255,166 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final List<Aula> selectedDayEvents = _selectedDay != null ? _getEventsForDay(_selectedDay!) : [];
-    final double horizontalPadding = screenSize.width * 0.05;
+    final double horizontalPadding = screenSize.width * 0.08;
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xfff1f1f1),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.verdeUNICV),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xfff1f1f1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro ao carregar dados: $_error'),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: _fetchAllocations,
+                child: const Text('Tentar Novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
       body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: screenSize.height * 0.03,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Calendário',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontSize: (screenSize.width * 0.08).clamp(24.0, 32.0),
+                fontWeight: FontWeight.w800,
                 color: AppColors.verdeUNICV,
                 fontFamily: 'Inter',
               ),
             ),
             const SizedBox(height: 20.0),
-            Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: TableCalendar<Aula>(
-                locale: 'pt_BR',
-                firstDay: DateTime.utc(2020, 1, 1),
-                lastDay: DateTime.utc(2030, 12, 31),
-                focusedDay: _focusedDay,
-                calendarFormat: _calendarFormat,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                onDaySelected: _onDaySelected,
-                eventLoader: _getEventsForDay,
-                onFormatChanged: (format) {
-                  if (_calendarFormat != format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  }
-                },
-                onPageChanged: (focusedDay) {
-                  _focusedDay = focusedDay;
-                },
-                headerStyle: HeaderStyle(
-                  titleTextStyle: TextStyle(fontSize: 18.0, color: Colors.black87, fontFamily: 'Inter', fontWeight: FontWeight.w600),
-                  formatButtonVisible: false, // Hides the format button (Month/2 weeks/Week)
-                  titleCentered: true,
-                  leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.verdeUNICV),
-                  rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.verdeUNICV),
+            TableCalendar<Aula>(
+              locale: 'pt_BR',
+              firstDay: DateTime(DateTime.now().year, DateTime.now().month - 3, 1),
+              lastDay: DateTime(DateTime.now().year, DateTime.now().month + 3, 0),
+              focusedDay: _focusedDay,
+              calendarFormat: _calendarFormat,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: _onDaySelected,
+              eventLoader: _getEventsForDay,
+              onFormatChanged: (format) {
+                if (_calendarFormat != format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                }
+              },
+              onPageChanged: (focusedDay) {
+                _focusedDay = focusedDay;
+              },
+              headerStyle: HeaderStyle(
+                titleTextStyle: const TextStyle(
+                  fontSize: 18.0,
+                  color: Colors.black87,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
                 ),
-                calendarStyle: CalendarStyle(
-                  outsideDaysVisible: false,
-                  todayDecoration: BoxDecoration(
-                    color: AppColors.verdeUNICV.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: BoxDecoration(
+                formatButtonVisible: true,
+                titleCentered: true,
+                leftChevronIcon: const Icon(Icons.chevron_left, color: AppColors.verdeUNICV),
+                rightChevronIcon: const Icon(Icons.chevron_right, color: AppColors.verdeUNICV),
+              ),
+              calendarStyle: CalendarStyle(
+                outsideDaysVisible: true,
+                todayDecoration: BoxDecoration(
+                  color: AppColors.verdeUNICV.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: AppColors.verdeUNICV,
+                  shape: BoxShape.circle,
+                ),
+                markerDecoration: BoxDecoration(
+                  color: AppColors.verdeUNICV.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                ),
+                markerSize: 5.0,
+                markersAlignment: Alignment.bottomCenter,
+              ),
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: Colors.black54,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+                weekendStyle: TextStyle(
+                  color: AppColors.verdeUNICV,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              availableCalendarFormats: const {
+                CalendarFormat.month: 'Mês',
+                CalendarFormat.week: 'Semana',
+              },
+            ),
+            if (selectedDayEvents.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                child: Text(
+                  _getDayOfWeekName(selectedDayEvents.first.dayOfWeek),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.verdeUNICV,
-                    shape: BoxShape.circle,
+                    fontFamily: 'Inter',
                   ),
-                  markerDecoration: BoxDecoration(
-                    color: AppColors.verdeUNICV.withOpacity(0.8),
-                    shape: BoxShape.circle,
-                  ),
-                   markerSize: 5.0,
-                   markersAlignment: Alignment.bottomCenter, // As in the image
-                   // Adjust marker offset if needed
-                   // markersOffset: const MarkersOffset(bottom: 3.5), // Commented out due to unresolved class name
-                ),
-                daysOfWeekStyle: DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(color: Colors.black54, fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                  weekendStyle: TextStyle(color: AppColors.verdeUNICV, fontFamily: 'Inter', fontWeight: FontWeight.w500), // Highlight weekends
                 ),
               ),
-            ),
-            const SizedBox(height: 8.0),
+            ],
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenSize.width * 0.05),
-                child: selectedDayEvents.isNotEmpty
-                    ? ListView.builder(
-                        itemCount: selectedDayEvents.length,
-                        itemBuilder: (context, index) {
-                          return _buildEventCard(selectedDayEvents[index]);
-                        },
-                      )
-                    : Center(
-                        child: Text(
-                          'Dia sem ensalamento :(',
-                          style: TextStyle(
-                              fontSize: 16,
+              child: selectedDayEvents.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.event_busy,
+                            size: 64,
+                            color: AppColors.verdeUNICV,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Não há aulas cadastradas para este dia :D',
+                            style: TextStyle(
+                              fontSize: (screenSize.width * 0.04).clamp(14.0, 18.0),
                               color: Colors.grey[600],
-                              fontFamily: 'Inter'),
-                        ),
+                              fontFamily: 'Inter',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-              ),
+                    )
+                  : ListView.builder(
+                      itemCount: selectedDayEvents.length,
+                      itemBuilder: (context, index) {
+                        return _buildEventCard(selectedDayEvents[index]);
+                      },
+                    ),
             ),
-             const SizedBox(height: 16.0), // Padding at the bottom
           ],
         ),
       ),

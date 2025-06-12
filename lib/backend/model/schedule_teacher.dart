@@ -10,7 +10,7 @@ class ScheduleTeacher {
   final Group group;
   final Schedule schedule;
   final Subject subject;
-  final Enum dayOfWeek;
+  final DayOfWeek dayOfWeek;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 

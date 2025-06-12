@@ -1,5 +1,6 @@
 import 'package:em_sala_mais/web/screens/room_allocation_crud_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/theme.dart';
 import 'bloco_crud_screen.dart';
 import 'room_crud_screen.dart';
@@ -8,6 +9,8 @@ import 'subject_crud_screen.dart';
 import 'course_crud_screen.dart';
 import 'group_crud_screen.dart';
 import 'schedule_crud_screen.dart';
+import './user_screen.dart';
+import './user_create.dart';
 
 class MenuItem {
   final String title;
@@ -26,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final _supabase = Supabase.instance.client;
 
   final List<MenuItem> _menuItems = [
     MenuItem(
@@ -70,6 +74,20 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  void _showUserCreateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const UserCreateDialog(),
+    );
+  }
+
+  void _handleUserIconClick() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const UserScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
@@ -84,21 +102,20 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 2,
         automaticallyImplyLeading: false,
         title: Builder(
-          builder:
-              (context) => Row(
-                children: [
-                  if (!isDesktop)
-                    IconButton(
-                      icon: const Icon(Icons.menu, color: AppColors.verdeUNICV),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                    ),
-                  SizedBox(width: 10),
-                  Image.asset('assets/images/LogoUNICV.png', height: 45),
-                  const SizedBox(width: 10),
-                ],
-              ),
+          builder: (context) => Row(
+            children: [
+              if (!isDesktop)
+                IconButton(
+                  icon: const Icon(Icons.menu, color: AppColors.verdeUNICV),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                ),
+              const SizedBox(width: 10),
+              Image.asset('assets/images/LogoUNICV.png', height: 45),
+              const SizedBox(width: 10),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -110,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: AppColors.verdeUNICV),
-            onPressed: () {},
+            onPressed: _handleUserIconClick,
           ),
           const SizedBox(width: 20),
         ],

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
 import '../../components/widgets/custom_dropdown.dart';
+import '../../backend/services/room_allocation.service.dart';
+import '../../backend/services/mobile_user.service.dart';
+import '../../backend/model/room_allocation.dart';
+import '../../backend/model/enums.dart';
+import '../../backend/dto/mobile_user_dto.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../backend/model/mobile_user.dart';
 
 class RoomAllocationScreen extends StatefulWidget {
   const RoomAllocationScreen({super.key});
@@ -10,21 +17,20 @@ class RoomAllocationScreen extends StatefulWidget {
 }
 
 class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
+  final _roomAllocationService = RoomAllocationService();
+  final _mobileUserService = MobileUserService();
+  final _supabase = Supabase.instance.client;
+  
   String _currentDayOfWeek = '';
-  DropdownValueModel? _selectedTurma;
-  String? _openDropdownId;
-
-  final List<DropdownValueModel> _turmas = [
-    DropdownValueModel(value: 'T1', label: 'Turma A'),
-    DropdownValueModel(value: 'T2', label: 'Turma B'),
-    DropdownValueModel(value: 'T3', label: 'Turma C - Manhã'),
-    DropdownValueModel(value: 'T4', label: 'Turma D - Tarde'),
-  ];
+  bool _isLoading = true;
+  String? _error;
+  List<RoomAllocation> _todaysAllocations = [];
 
   @override
   void initState() {
     super.initState();
     _setCurrentDayOfWeek();
+    _fetchAllocations();
   }
 
   void _setCurrentDayOfWeek() {
@@ -56,22 +62,54 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
     }
   }
 
-  void _handleDropdownOpen(String dropdownId) {
+  Future<void> _fetchAllocations() async {
     setState(() {
-      if (_openDropdownId == dropdownId) {
-        _openDropdownId = null;
-      } else {
-        _openDropdownId = dropdownId;
-      }
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      // Busca o usuário atual e sua turma
+      final userId = _supabase.auth.currentUser!.id;
+      final mobileUser = await _mobileUserService.getMobileUserByAuthId(userId);
+      if (mobileUser == null) {
+        throw Exception('Usuário não encontrado');
+      }
+
+      // Busca todas as alocações
+      final allAllocations = await _roomAllocationService.getRoomAllocations();
+      
+      // Filtra apenas as alocações do dia atual e da turma do usuário
+      final today = DateTime.now();
+      final currentDayOfWeek = DayOfWeek.values[today.weekday - 1];
+      
+      setState(() {
+        _todaysAllocations = allAllocations
+            .where((alloc) => 
+              alloc.scheduleTeacher.group.id == mobileUser.idGroup &&
+              alloc.scheduleTeacher.dayOfWeek == currentDayOfWeek)
+            .toList();
+
+        // Ordena por horário de início
+        _todaysAllocations.sort((a, b) => 
+          a.scheduleTeacher.schedule.scheduleStart.compareTo(
+            b.scheduleTeacher.schedule.scheduleStart
+          )
+        );
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  Widget _buildAllocationCard(
-    String subject,
-    String room,
-    String teacher,
-    String time,
-  ) {
+  Widget _buildAllocationCard(RoomAllocation allocation) {
+    final schedule = allocation.scheduleTeacher.schedule;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -92,7 +130,7 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Disciplina: $subject',
+              'Disciplina: ${allocation.scheduleTeacher.subject.name}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -105,7 +143,7 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
                 const Icon(Icons.room_outlined, color: Colors.grey, size: 20),
                 const SizedBox(width: 8.0),
                 Text(
-                  'Sala: $room',
+                  'Sala: ${allocation.room.name} (${allocation.room.bloco.name})',
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],
@@ -116,7 +154,7 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
                 const Icon(Icons.person_outline, color: Colors.grey, size: 20),
                 const SizedBox(width: 8.0),
                 Text(
-                  'Professor: $teacher',
+                  'Professor: ${allocation.scheduleTeacher.teacher.name}',
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],
@@ -127,7 +165,7 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
                 const Icon(Icons.access_time, color: Colors.grey, size: 20),
                 const SizedBox(width: 8.0),
                 Text(
-                  'Horário: $time',
+                  'Horário: ${schedule.scheduleStart} - ${schedule.scheduleEnd}',
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],
@@ -146,9 +184,36 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
 
     final double horizontalPadding = width * 0.08;
     final double verticalSpacing = height * 0.02;
-    final double inputFontSize = (width * 0.04).clamp(14.0, 18.0);
     final double titleFontSize = (width * 0.05).clamp(18.0, 24.0);
     final double dayFontSize = (width * 0.08).clamp(24.0, 32.0);
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xfff1f1f1),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.verdeUNICV),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xfff1f1f1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro ao carregar dados: $_error'),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: _fetchAllocations,
+                child: const Text('Tentar Novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xfff1f1f1),
@@ -169,67 +234,51 @@ class _RoomAllocationScreenState extends State<RoomAllocationScreen> {
                 fontFamily: 'Inter',
               ),
             ),
-            SizedBox(height: verticalSpacing * 1.5),
-            CustomDropdown(
-              label: 'Selecionar Turma',
-              items: _turmas,
-              selectedValue: _selectedTurma,
-              onChanged: (value) {
-                setState(() {
-                  _selectedTurma = value;
-                  _openDropdownId = null;
-                });
-              },
-              width: width * 0.84,
-              fontSize: inputFontSize,
-              dropdownId: 'turma_selector',
-              onOpen: () => _handleDropdownOpen('turma_selector'),
-              openDropdownId: _openDropdownId,
-            ),
             SizedBox(height: verticalSpacing * 2),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '1ª Aula',
-                style: TextStyle(
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.verdeUNICV,
-                  fontFamily: 'Inter',
+            if (_todaysAllocations.isEmpty)
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.event_busy,
+                      size: 64,
+                      color: AppColors.verdeUNICV,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Não há aula cadastrada para hoje :D',
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        color: AppColors.verdeUNICV,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 12.0),
-            _buildAllocationCard(
-              _selectedTurma != null
-                  ? 'Mat. Discreta (${_selectedTurma!.label})'
-                  : 'Mat. Discreta',
-              'Sala 202',
-              'Prof. Dr. Carlos Andrade',
-              '08:00 - 09:40',
-            ),
-            SizedBox(height: verticalSpacing * 2),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '2ª Aula',
-                style: TextStyle(
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.verdeUNICV,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-            const SizedBox(height: 12.0),
-            _buildAllocationCard(
-              _selectedTurma != null
-                  ? 'Proj. Interdisciplinar (${_selectedTurma!.label})'
-                  : 'Proj. Interdisciplinar',
-              'Lab. Robótica',
-              'Profa. Dra. Ana Beatriz',
-              '10:00 - 11:40',
-            ),
+              )
+            else
+              ..._todaysAllocations.map((allocation) {
+                final isFirstClass = allocation.scheduleTeacher.schedule.scheduleTime == ScheduleTime.primeira;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isFirstClass ? '1ª Aula' : '2ª Aula',
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.verdeUNICV,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 12.0),
+                    _buildAllocationCard(allocation),
+                    SizedBox(height: verticalSpacing * 2),
+                  ],
+                );
+              }).toList(),
           ],
         ),
       ),

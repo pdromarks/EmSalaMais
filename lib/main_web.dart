@@ -1,3 +1,5 @@
+import 'package:em_sala_mais/web/screens/login_screen.dart';
+import 'package:em_sala_mais/web/screens/user_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,6 +17,38 @@ Future<void> main() async {
   );
 
   runApp(const EmSalaMaisApp());
+}
+
+class AuthObserver extends StatefulWidget {
+  const AuthObserver({super.key});
+
+  @override
+  State<AuthObserver> createState() => _AuthObserverState();
+}
+
+class _AuthObserverState extends State<AuthObserver> {
+  @override
+  void initState() {
+    super.initState();
+    _setupAuthListener();
+  }
+
+  void _setupAuthListener() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedIn) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else if (event == AuthChangeEvent.signedOut) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+    return session != null ? const HomeScreen() : const LoginScreen();
+  }
 }
 
 class EmSalaMaisApp extends StatelessWidget {
@@ -41,7 +75,14 @@ class EmSalaMaisApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
       locale: const Locale('pt', 'BR'),
-      home: const HomeScreen(),
+      initialRoute:
+          Supabase.instance.client.auth.currentSession != null ? '/home' : '/login',
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/user':(context) => const UserScreen(),
+      },
+      home: const AuthObserver(),
     );
   }
 }
