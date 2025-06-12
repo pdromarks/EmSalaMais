@@ -23,6 +23,7 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
   List<GroupDTO> _actualGroups = [];
   List<Course> _actualCourses = [];
   bool _isLoading = true;
+  bool _isAutoCreation = false;
 
   // Controladores de estado do formulário
   final TextEditingController _turmaController = TextEditingController();
@@ -159,136 +160,231 @@ class _GroupCrudScreenState extends State<GroupCrudScreen> {
     }
   }
 
+  bool _groupExists(String turma, int courseId, Semester semester) {
+    return _actualGroups.any((g) =>
+        g.name == turma &&
+        g.courseId == courseId &&
+        g.semester == semester);
+  }
+
+  Future<void> _createAllCombinations(Course course) async {
+    int successCount = 0;
+    int skippedCount = 0;
+    
+    try {
+      for (String turma in _turmasOpcoes) {
+        for (Semester semester in Semester.values) {
+          if (!_groupExists(turma, course.id, semester)) {
+            final GroupDTO groupDTO = GroupDTO(
+              name: turma,
+              updatedAt: DateTime.now(),
+              courseId: course.id,
+              semester: semester,
+              id: null,
+            );
+            await _groupService.createGroup(groupDTO);
+            successCount++;
+          } else {
+            skippedCount++;
+          }
+        }
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Processo concluído: $successCount turmas criadas, $skippedCount já existentes.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      _fetchData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao criar turmas: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleAdd() async {
     _resetFormState();
+    setState(() {
+      _isAutoCreation = false;
+    });
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setState) => CustomFormDialog(
-                  title: 'Nova Turma',
-                  fields: [
-                    CustomFormField(
-                      label: 'Curso',
-                      isDropdown: true,
-                      value: _selectedCourse?.name,
-                      items:
-                          _actualCourses
-                              .map(
-                                (c) => DropdownMenuItem<String>(
-                                  value: c.name,
-                                  child: Text(c.name),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCourse =
-                              value == null
-                                  ? null
-                                  : _actualCourses.firstWhere(
-                                    (c) => c.name == value,
-                                  );
-                        });
-                      },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => CustomFormDialog(
+          title: 'Nova Turma',
+          fields: [
+            CustomFormField(
+              label: 'Curso',
+              isDropdown: true,
+              value: _selectedCourse?.name,
+              items: _actualCourses
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c.name,
+                      child: Text(c.name),
                     ),
-                    CustomFormField(
-                      label: 'Turma',
-                      isDropdown: true,
-                      value: _selectedTurma,
-                      items:
-                          _turmasOpcoes
-                              .map(
-                                (turma) => DropdownMenuItem<String>(
-                                  value: turma,
-                                  child: Text(turma),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTurma = value;
-                        });
-                      },
-                    ),
-                    CustomFormField(
-                      label: 'Semestre',
-                      isDropdown: true,
-                      value:
-                          _selectedSemester != null
-                              ? _semesterToLabel(_selectedSemester!)
-                              : null,
-                      items:
-                          Semester.values
-                              .map(
-                                (s) => DropdownMenuItem<String>(
-                                  value: _semesterToLabel(s),
-                                  child: Text(_semesterToLabel(s)),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          if (value != null) {
-                            _selectedSemester =
-                                Semester.values[int.parse(value.split('º')[0]) -
-                                    1];
-                          } else {
-                            _selectedSemester = null;
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                  onSave: (data) {
-                    if (_selectedCourse == null ||
-                        _selectedTurma == null ||
-                        _selectedSemester == null ||
-                        _selectedPeriodo == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Preencha todos os campos obrigatórios!',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
+                  )
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCourse =
+                      value == null
+                          ? null
+                          : _actualCourses.firstWhere(
+                              (c) => c.name == value,
+                            );
+                });
+              },
+            ),
+            if (!_isAutoCreation) ...[
+              CustomFormField(
+                label: 'Turma',
+                isDropdown: true,
+                value: _selectedTurma,
+                items: _turmasOpcoes
+                    .map(
+                      (turma) => DropdownMenuItem<String>(
+                        value: turma,
+                        child: Text(turma),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedTurma = value;
+                  });
+                },
+              ),
+              CustomFormField(
+                label: 'Semestre',
+                isDropdown: true,
+                value: _selectedSemester != null
+                    ? _semesterToLabel(_selectedSemester!)
+                    : null,
+                items: Semester.values
+                    .map(
+                      (s) => DropdownMenuItem<String>(
+                        value: _semesterToLabel(s),
+                        child: Text(_semesterToLabel(s)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    if (value != null) {
+                      _selectedSemester =
+                          Semester.values[int.parse(value.split('º')[0]) - 1];
+                    } else {
+                      _selectedSemester = null;
                     }
-                    final groupData = {
-                      'curso': _selectedCourse,
-                      'semestre': _selectedSemester,
-                      'turma': _selectedTurma,
-                      'periodo': _selectedPeriodo,
-                    };
-                    Navigator.pop(context, groupData);
-                  },
-                  onCancel: () => Navigator.pop(context),
-                  customWidget: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: CustomRadioButton<String>(
-                      label: 'Período',
-                      value: _selectedPeriodo,
-                      groupValue: _selectedPeriodo,
-                      options: _periodos,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPeriodo = value;
-                          if (value != null) {
-                            _selectedSemester = _getSemesterFromPeriod(value);
-                          }
-                        });
-                      },
-                    ),
+                  });
+                },
+              ),
+            ],
+          ],
+          onSave: (data) async {
+            if (_selectedCourse == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Selecione um curso!'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            if (_isAutoCreation) {
+              Navigator.pop(context, {'autoCreate': true, 'curso': _selectedCourse});
+              return;
+            }
+
+            if (_selectedTurma == null ||
+                _selectedSemester == null ||
+                _selectedPeriodo == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Preencha todos os campos obrigatórios!'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            final groupData = {
+              'curso': _selectedCourse,
+              'semestre': _selectedSemester,
+              'turma': _selectedTurma,
+              'periodo': _selectedPeriodo,
+            };
+            Navigator.pop(context, groupData);
+          },
+          onCancel: () => Navigator.pop(context),
+          customWidget: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SwitchListTile(
+                title: const Text(
+                  'Cadastro automático para todos?',
+                  style: TextStyle(
+                    color: AppColors.verdeUNICV,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+                value: _isAutoCreation,
+                onChanged: (bool value) {
+                  setState(() {
+                    _isAutoCreation = value;
+                    if (value) {
+                      _selectedTurma = null;
+                      _selectedSemester = null;
+                      _selectedPeriodo = null;
+                    }
+                  });
+                },
+                activeColor: AppColors.verdeUNICV,
+              ),
+              if (!_isAutoCreation) ...[
+                const SizedBox(height: 16),
+                CustomRadioButton<String>(
+                  label: 'Período',
+                  value: _selectedPeriodo,
+                  groupValue: _selectedPeriodo,
+                  options: _periodos,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedPeriodo = value;
+                      if (value != null) {
+                        _selectedSemester = _getSemesterFromPeriod(value);
+                      }
+                    });
+                  },
+                ),
+              ],
+            ],
           ),
+        ),
+      ),
     );
 
     if (result != null) {
       try {
+        if (result['autoCreate'] == true) {
+          await _createAllCombinations(result['curso'] as Course);
+          return;
+        }
+
         final GroupDTO groupDTO = GroupDTO(
           name: result['turma'] as String,
           updatedAt: DateTime.now(),
